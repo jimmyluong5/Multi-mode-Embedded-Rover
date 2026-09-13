@@ -205,7 +205,7 @@ void Robot_LineFollow_Update(void) {
 
   // 5. Update Servo Steering Angle (Dynamic Proportional Steering)
   int16_t target_servo_angle = SERVO_ANGLE_CENTER + (int16_t)((error * 45) / 3500);
-  if (target_servo_angle < SERVO_ANGLE_LEFT) target_servo_angle = SERVO_ANGLE_LEFT;
-  if (target_servo_angle > SERVO_ANGLE_RIGHT) target_servo_angle = SERVO_ANGLE_RIGHT;
+  if (target_servo_angle < SERVO_ANGLE_MIN) target_servo_angle = SERVO_ANGLE_MIN;
+  if (target_servo_angle > SERVO_ANGLE_MAX) target_servo_angle = SERVO_ANGLE_MAX;
   Servo_SetAngle((uint8_t)target_servo_angle);
 }

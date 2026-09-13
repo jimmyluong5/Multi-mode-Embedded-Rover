@@ -9,8 +9,8 @@
 #define SERVO_ANGLE_MIN    38
 #define SERVO_ANGLE_MAX    153
 #define SERVO_ANGLE_CENTER 90
-#define SERVO_ANGLE_LEFT   153
-#define SERVO_ANGLE_RIGHT  38
+#define SERVO_ANGLE_LEFT   38
+#define SERVO_ANGLE_RIGHT  153
 
 void servo_init(void);
 void Servo_SetAngle(uint8_t angle);

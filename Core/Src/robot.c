@@ -30,11 +30,9 @@ void Robot_SetState(RobotState new_state) {
   switch (current_state) {
   case robot_forward:
     Motor_Forward(robot_speed);
-    Servo_SetAngle(SERVO_ANGLE_CENTER);
     break;
   case robot_reverse:
     Motor_Reverse(robot_speed);
-    Servo_SetAngle(SERVO_ANGLE_CENTER);
     break;
   case robot_left:
     // Spin turn left: left motor backward, right motor forward

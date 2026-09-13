@@ -108,8 +108,8 @@ void menu_combined(void) {
             "Commands:\r\n"
             " [w] - Drive Forward (Servo Center)\r\n"
             " [s] - Drive Reverse (Servo Center)\r\n"
-            " [a] - Steer Left (Hold for 45 deg turn)\r\n"
-            " [d] - Steer Right (Hold for 135 deg turn)\r\n"
+            " [a] - Steer Left (Hold for 38 deg turn)\r\n"
+            " [d] - Steer Right (Hold for 153 deg turn)\r\n"
             " [x] - Stop / Idle (Servo Center)\r\n"
             " [f] - Force Fault\r\n"
             " [1, 2, 3, 4] - Set Speed (25%, 50%, 75%, 100% PWM)\r\n"
@@ -164,9 +164,9 @@ void menu_servo(void) {
   UART_SendMessage("\x1b[2J\x1b[H"
                          "--- Servo Control Mode Active ---\r\n"
                          "Controls:\r\n"
-                         " [a] - Decrease angle by 5 deg (min 45 deg)\r\n"
-                         " [d] - Increase angle by 5 deg (max 135 deg)\r\n"
-                         " [1] - Set to 45 deg | [2] - Set to 90 deg | [3] - Set to 135 deg\r\n"
+                         " [a] - Steer Left (-5 deg, min 38 deg)\r\n"
+                         " [d] - Steer Right (+5 deg, max 153 deg)\r\n"
+                         " [1] - Set to 38 deg (Left) | [2] - Set to 90 deg (Center) | [3] - Set to 153 deg (Right)\r\n"
                          " [h] - Return to Main Menu\r\n"
                          "---------------------------------\r\n"
                          "Current Angle:  90 degrees");
@@ -276,16 +276,22 @@ void UART_CONTROL_update(void) {
         int16_t left_pwm  = fwd_pwm + side_pwm;
         int16_t right_pwm = fwd_pwm - side_pwm;
 
+        // Proportional Front Servo Steering: maps JoyX to 38 deg (Left) - 153 deg (Right)
+        int16_t target_servo_angle = SERVO_ANGLE_CENTER + (int16_t)((x_raw * (SERVO_ANGLE_RIGHT - SERVO_ANGLE_CENTER)) / 2048);
+        if (target_servo_angle < SERVO_ANGLE_MIN) target_servo_angle = SERVO_ANGLE_MIN;
+        if (target_servo_angle > SERVO_ANGLE_MAX) target_servo_angle = SERVO_ANGLE_MAX;
+
         if (current_mode == UART_MODE_STM32) {
           char packet_values[160];
-          snprintf(packet_values, sizeof(packet_values), "[ESP32->STM32] JoyX:%4u | JoyY:%4u | Spd:%3u | Mode:%u | Btns:0x%02X -> PWM L:%+4d R:%+4d\r\n",
-                   packet.joystick_x, packet.joystick_y, packet.speed, packet.mode, packet.button_data, left_pwm, right_pwm);
+          snprintf(packet_values, sizeof(packet_values), "[ESP32->STM32] JoyX:%4u | JoyY:%4u | Spd:%3u | Mode:%u | Btns:0x%02X -> PWM L:%+4d R:%+4d | Servo:%d deg\r\n",
+                   packet.joystick_x, packet.joystick_y, packet.speed, packet.mode, packet.button_data, left_pwm, right_pwm, target_servo_angle);
           UART_SendMessage(packet_values);
         }
 
         if (packet.mode == MANUAL_MODE) {
           Motor_Left_SetSpeed(left_pwm);
           Motor_Right_SetSpeed(right_pwm);
+          Servo_SetAngle((uint8_t)target_servo_angle);
         }
         else if (packet.mode == AUTO_MODE) {
           Robot_SetState(robot_auto);
@@ -293,6 +299,7 @@ void UART_CONTROL_update(void) {
         else {
           packet.mode = MENU_MODE;
           Motor_Stop();
+          Servo_SetAngle(SERVO_ANGLE_CENTER);
         }
       }
     }
@@ -495,42 +502,36 @@ void UART_CONTROL_update(void) {
             break;
 
           case 'a':
-            Robot_SetState(robot_left);
             if (current_mode == UART_MODE_COMBINED) {
-
-              if (current_servo_angle < SERVO_ANGLE_MAX) {
-                current_servo_angle = (current_servo_angle + 10 > SERVO_ANGLE_MAX) ? SERVO_ANGLE_MAX : (current_servo_angle + 10);
+              if (current_servo_angle > SERVO_ANGLE_MIN) {
+                current_servo_angle = (current_servo_angle < SERVO_ANGLE_MIN + 10) ? SERVO_ANGLE_MIN : (current_servo_angle - 10);
               }
               Servo_SetAngle(current_servo_angle);
               char angle_msg[64];
               snprintf(angle_msg, sizeof(angle_msg), "COMBINED LEFT (Servo: %d deg)\r\n", current_servo_angle);
               UART_SendMessage(angle_msg);
-
             } 
-
-            else if (current_mode == UART_MODE_MOTOR) {
+            else if (current_mode == UART_MODE_MOTOR || current_mode == UART_MODE_BOTH) {
+              Robot_SetState(robot_left);
               UART_SendMessage("ROBOT LEFT\r\n");
             }
             break;
 
-            case 'd':
-              Robot_SetState(robot_right);
-              if (current_mode == UART_MODE_COMBINED) {
-
-                  if (current_servo_angle > SERVO_ANGLE_MIN) {
-                    current_servo_angle = (current_servo_angle < SERVO_ANGLE_MIN + 10) ? SERVO_ANGLE_MIN : (current_servo_angle - 10);
-                  }
-                  Servo_SetAngle(current_servo_angle);
-                  char angle_msg[64];
-                  snprintf(angle_msg, sizeof(angle_msg), "COMBINED RIGHT (Servo: %d deg)\r\n", current_servo_angle);
-                  UART_SendMessage(angle_msg);
-
-                } 
-
-              else if (current_mode == UART_MODE_MOTOR) {
-                UART_SendMessage("ROBOT RIGHT\r\n");
+          case 'd':
+            if (current_mode == UART_MODE_COMBINED) {
+              if (current_servo_angle < SERVO_ANGLE_MAX) {
+                current_servo_angle = (current_servo_angle + 10 > SERVO_ANGLE_MAX) ? SERVO_ANGLE_MAX : (current_servo_angle + 10);
               }
-              break;
+              Servo_SetAngle(current_servo_angle);
+              char angle_msg[64];
+              snprintf(angle_msg, sizeof(angle_msg), "COMBINED RIGHT (Servo: %d deg)\r\n", current_servo_angle);
+              UART_SendMessage(angle_msg);
+            } 
+            else if (current_mode == UART_MODE_MOTOR || current_mode == UART_MODE_BOTH) {
+              Robot_SetState(robot_right);
+              UART_SendMessage("ROBOT RIGHT\r\n");
+            }
+            break;
 
             case 'f':
               Robot_SetState(robot_fault);
@@ -644,17 +645,17 @@ void UART_CONTROL_update(void) {
           break;
 
         case 'a':
-          current_servo_angle = (current_servo_angle <= SERVO_ANGLE_MAX - 5) ? current_servo_angle + 5 : SERVO_ANGLE_MAX;
-          angle_changed = true;
-          break;
-
-        case 'd':
           current_servo_angle = (current_servo_angle >= SERVO_ANGLE_MIN + 5) ? current_servo_angle - 5 : SERVO_ANGLE_MIN;
           angle_changed = true;
           break;
 
+        case 'd':
+          current_servo_angle = (current_servo_angle <= SERVO_ANGLE_MAX - 5) ? current_servo_angle + 5 : SERVO_ANGLE_MAX;
+          angle_changed = true;
+          break;
+
         case '1':
-          current_servo_angle = SERVO_ANGLE_LEFT; // 135 deg
+          current_servo_angle = SERVO_ANGLE_LEFT; // 38 deg
           angle_changed = true;
           break;
 
@@ -664,7 +665,7 @@ void UART_CONTROL_update(void) {
           break;
 
         case '3':
-          current_servo_angle = SERVO_ANGLE_RIGHT; // 45 deg
+          current_servo_angle = SERVO_ANGLE_RIGHT; // 153 deg
           angle_changed = true;
           break;
 
@@ -948,15 +949,15 @@ void UART_CONTROL_update(void) {
   }
 }
 
-// this function checks if we have timeouted or not.
+// Communication timeout watchdog: stops motors and centers steering if packets stop arriving
 void UART_CONTROL_check_timeout(void) {
-  // If the robot is not idle, fault, or auto, check for communication timeout
-  if (Robot_GetState() != robot_idle && Robot_GetState() != robot_fault && Robot_GetState() != robot_auto) {
-
-    // check if its been too long since we last got a command.
-    if (HAL_GetTick() - last_command_time > 2000) {
-      Robot_SetState(robot_fault);
-      UART_SendMessage("TIMEOUT - ROBOT FAULT\r\n");
+  if (last_command_time > 0 && (HAL_GetTick() - last_command_time > 1000)) {
+    if (Robot_GetState() != robot_fault && Robot_GetState() != robot_auto) {
+      Motor_Stop();
+      Servo_SetAngle(SERVO_ANGLE_CENTER);
+      if (Robot_GetState() != robot_idle) {
+        Robot_SetState(robot_idle);
+      }
     }
   }
 }
