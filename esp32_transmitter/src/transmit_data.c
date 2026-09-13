@@ -37,6 +37,7 @@ uint8_t active_mode = MENU_MODE; //default mode is the manual mode sure, default
 uint8_t current_speed = 128; // default 50% speed
 int page_length = PAGE_MAX_COUNT -1;
 int mode_length = TOTAL_MODES-1;
+bool auto_running = false; //initialize the robot to not move in the beginning.
 
 // Array for the GPIO pins to loop through and read
 
@@ -235,6 +236,14 @@ void process_arrow_keys(data_packet_t *packet) {
                 current_page = PAGE_AUTO;
                 ESP_LOGI(TAG, "Returning back to Auto Page");
             }
+            else if (clicked_center) {
+                //depending on what the flag is it should be the opposite.
+                auto_running = !auto_running;
+                //use the speaker 
+                speaker_pattern(1, 40, 0);
+                break;
+
+            }
             break;
 
         case PAGE_IMU:
@@ -248,6 +257,7 @@ void process_arrow_keys(data_packet_t *packet) {
                 current_page = PAGE_IMU_DATA;
                 ESP_LOGI(TAG, "IMU Data Page");
             }
+            //logic for clicking the center button, we can toggle the flag and start the motors
             break;
 
         case PAGE_IMU_DATA:

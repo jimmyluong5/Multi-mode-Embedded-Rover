@@ -21,6 +21,8 @@ extern bool failsafe_flag;
 #define COLOR_PULSE_GOLD    SWAP16(0xFD40) // #FFAA00
 #define COLOR_TEXT_CYAN     SWAP16(0x07FF) // #00FFFF Electric Cyan
 
+extern bool auto_running;
+
 // Center Y of each pill button on the 240x320 screen
 static const int pill_center_y[TOTAL_MODES] = {
     [MENU_MODE]   = 126,
@@ -334,6 +336,9 @@ static inline uint16_t apply_overlay(int x, int y, uint16_t bg_pixel, uint16_t h
         }
         return bg_pixel;
     }
+
+
+
 
     return bg_pixel;
 }

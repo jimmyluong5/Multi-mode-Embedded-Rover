@@ -37,4 +37,6 @@ idf_component_register(
         "images/github.jpg"
         "images/blankfirstpage.jpg"
         "images/secondpagedata.jpg"
+        "images/autofirst.jpg"
+        "images/autofirststop.jpg"
 )

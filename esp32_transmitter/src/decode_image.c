@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include "transmit_data.h"
 
+extern bool auto_running;
+
 
 // Binary included JPEG file in flash
 //just change frame1 to whatever the img file is called to change the image.
@@ -120,6 +122,17 @@
     asm("_binary_secondpagedata_jpg_start");
     extern const uint8_t secondpagedata_end[]
     asm("_binary_secondpagedata_jpg_end");
+
+    extern const uint8_t autofirst_start[]
+    asm("_binary_autofirst_jpg_start");
+    extern const uint8_t autofirst_end[]
+    asm("_binary_autofirst_jpg_end");
+
+    extern const uint8_t autofirststop_start[]
+    asm("_binary_autofirststop_jpg_start");
+    extern const uint8_t autofirststop_end[]
+    asm("_binary_autofirststop_jpg_end");
+
 
 
 //create array with ptrs to the images
@@ -253,6 +266,16 @@ esp_err_t decode_image(int frame_idx, uint16_t **pixels) {
             jd.inLen = blankfirstpage_end - blankfirstpage_start;
             break;
         case PAGE_AUTO:
+        
+            if (auto_running == true) {
+                jd.inData = autofirst_start;
+                jd.inLen = autofirst_end - autofirst_start;
+            }
+            else {
+                jd.inData = autofirststop_start;
+                jd.inLen = autofirststop_end - autofirststop_start;
+            }           
+            break;
         case PAGE_IMU:
             jd.inData = leftright_start; // the page with double arrows
             jd.inLen  = leftright_end - leftright_start;
