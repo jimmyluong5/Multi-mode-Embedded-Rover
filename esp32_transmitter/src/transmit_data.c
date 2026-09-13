@@ -229,20 +229,19 @@ void process_arrow_keys(data_packet_t *packet) {
                 current_page = PAGE_AUTO_DATA;
                 ESP_LOGI(TAG, "Auto Data Page");
             }
+            else if (clicked_center) {
+                //depending on what the flag is it should be the opposite.
+                auto_running = !auto_running;
+                //use the speaker 
+                speaker_pattern(1, 40, 0);
+            }
+
             break;
 
         case PAGE_AUTO_DATA:
             if (clicked_left) {
                 current_page = PAGE_AUTO;
                 ESP_LOGI(TAG, "Returning back to Auto Page");
-            }
-            else if (clicked_center) {
-                //depending on what the flag is it should be the opposite.
-                auto_running = !auto_running;
-                //use the speaker 
-                speaker_pattern(1, 40, 0);
-                break;
-
             }
             break;
 

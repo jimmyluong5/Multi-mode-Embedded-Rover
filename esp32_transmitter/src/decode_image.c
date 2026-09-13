@@ -266,15 +266,8 @@ esp_err_t decode_image(int frame_idx, uint16_t **pixels) {
             jd.inLen = blankfirstpage_end - blankfirstpage_start;
             break;
         case PAGE_AUTO:
-        
-            if (auto_running == true) {
-                jd.inData = autofirst_start;
-                jd.inLen = autofirst_end - autofirst_start;
-            }
-            else {
-                jd.inData = autofirststop_start;
-                jd.inLen = autofirststop_end - autofirststop_start;
-            }           
+            jd.inData = autofirst_start;
+            jd.inLen  = autofirst_end - autofirst_start;
             break;
         case PAGE_IMU:
             jd.inData = leftright_start; // the page with double arrows

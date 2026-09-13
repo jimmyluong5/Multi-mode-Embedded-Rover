@@ -340,6 +340,53 @@ static inline uint16_t apply_overlay(int x, int y, uint16_t bg_pixel, uint16_t h
 
 
 
+    // 4. Auto Mode Page dynamic button
+    if (current_page == PAGE_AUTO) {
+        // Shifted down by +10 pixels: X [126 to 228], Y [54 to 98]
+        if (x >= 126 && x <= 228 && y >= 54 && y <= 98) {
+            
+            // 1. Text: "RUNNING" vs "STOPPED" (Centered at Y=76, X=156)
+            const char *label = auto_running ? "RUNNING" : "STOPPED";
+            int text_x0 = 156;
+            int text_y0 = 73;
+            
+            if (y >= text_y0 && y < text_y0 + 7 && x >= text_x0 && x < text_x0 + 42) {
+                int char_idx = (x - text_x0) / 6;
+                int char_x0 = text_x0 + char_idx * 6;
+                char c = label[char_idx];
+                if (font5x7_get_pixel(c, char_x0, text_y0, x, y)) {
+                    return auto_running ? SWAP16(0x07E0) : SWAP16(0xF800);
+                }
+            }
+
+            // 2. Icon: Play Arrow ▶ vs Stop Square ■ (Centered at Y=76)
+            if (auto_running) {
+                if (x >= 142 && x <= 148 && y >= 72 && y <= 80) {
+                    int dy = (y >= 76) ? (y - 76) : (76 - y);
+                    if ((x - 142) <= (4 - dy)) {
+                        return SWAP16(0x07E0);
+                    }
+                }
+            } else {
+                if (x >= 142 && x <= 148 && y >= 73 && y <= 79) {
+                    return SWAP16(0xF800);
+                }
+            }
+
+            // 3. Border vs Background Fill
+            bool is_border = (x == 126 || x == 228 || y == 54 || y == 98 ||
+                              x == 127 || x == 227 || y == 55 || y == 97);
+            
+            if (auto_running) {
+                return is_border ? SWAP16(0x07E0) : SWAP16(0x01E0);
+            } else {
+                return is_border ? SWAP16(0xF800) : SWAP16(0x3800);
+            }
+        }
+
+        return bg_pixel;
+    }
+
     return bg_pixel;
 }
 
