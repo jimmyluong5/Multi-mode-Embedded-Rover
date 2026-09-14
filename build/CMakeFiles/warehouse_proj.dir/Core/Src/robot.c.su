@@ -1,4 +1,4 @@
 C:/Users/jimmy/Downloads/warehouse_proj/Core/Src/robot.c:14:6:Robot_Init	8	static
 C:/Users/jimmy/Downloads/warehouse_proj/Core/Src/robot.c:20:6:Robot_SetState	16	static
-C:/Users/jimmy/Downloads/warehouse_proj/Core/Src/robot.c:67:6:Robot_Update	8	static
-C:/Users/jimmy/Downloads/warehouse_proj/Core/Src/robot.c:73:12:Robot_GetState	4	static
+C:/Users/jimmy/Downloads/warehouse_proj/Core/Src/robot.c:68:6:Robot_Update	8	static
+C:/Users/jimmy/Downloads/warehouse_proj/Core/Src/robot.c:74:12:Robot_GetState	4	static

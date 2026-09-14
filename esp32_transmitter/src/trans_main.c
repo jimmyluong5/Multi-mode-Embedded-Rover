@@ -134,7 +134,8 @@ void app_main(void) {
             packet.joystick_y = 2000; // Force neutral center
             packet.speed = 0;
             packet.mode = MENU_MODE;
-        } else if (current_page == PAGE_AUTO || current_page == PAGE_AUTO_DATA) {
+        } 
+        else if (current_page == PAGE_AUTO || current_page == PAGE_AUTO_DATA) {
             extern bool auto_running;
             packet.button_data = 0;
             packet.joystick_x = 2000;
@@ -142,14 +143,17 @@ void app_main(void) {
             if (auto_running) {
                 packet.mode = AUTO_MODE;
                 packet.speed = current_speed;
-            } else {
+            } 
+            else {
                 packet.mode = MENU_MODE; // Stay stationary when stopped
                 packet.speed = 0;
             }
-        } else if (current_page == PAGE_MANUAL || current_page == PAGE_MANUAL_DATA) {
+        } 
+        else if (current_page == PAGE_MANUAL || current_page == PAGE_MANUAL_DATA) {
             packet.mode = MANUAL_MODE;
             packet.speed = current_speed;
-        } else if (current_page == PAGE_IMU || current_page == PAGE_IMU_DATA) {
+        } 
+        else if (current_page == PAGE_IMU || current_page == PAGE_IMU_DATA) {
             packet.mode = IMU_MODE;
             packet.speed = current_speed;
         }

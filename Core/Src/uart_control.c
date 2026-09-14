@@ -289,18 +289,26 @@ void UART_CONTROL_update(void) {
         }
 
         if (packet.mode == MANUAL_MODE) {
+          Robot_SetState(robot_manual);
           Motor_Left_SetSpeed(left_pwm);
           Motor_Right_SetSpeed(right_pwm);
+          
           Servo_SetAngle((uint8_t)target_servo_angle);
         }
         else if (packet.mode == AUTO_MODE) {
           Robot_SetState(robot_auto);
+          
+          //we call the line following function
+          Robot_LineFollow_Update();
         }
         else {
           packet.mode = MENU_MODE;
+          Robot_SetState(robot_idle);
           Motor_Stop();
           Servo_SetAngle(SERVO_ANGLE_CENTER);
         }
+
+      
       }
     }
   }

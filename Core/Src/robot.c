@@ -43,8 +43,9 @@ void Robot_SetState(RobotState new_state) {
     // Spin turn right: left motor forward, right motor backward
     Motor_Left_SetSpeed(robot_speed);
     Motor_Right_SetSpeed(-robot_speed);
-
     break;
+  case robot_manual:
+    break; //we do nothing because the movement is controlled by the joystick
   case robot_idle:
     Motor_Stop();
     Servo_SetAngle(SERVO_ANGLE_CENTER);

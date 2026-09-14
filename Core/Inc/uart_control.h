@@ -36,7 +36,6 @@ typedef struct __attribute__((packed)) {
     float   latencyMs;
     float   jitterMs;
     uint16_t missedDeadlines;
-    uint16_t voltage_values[8];
 } robot_status_t;
 
 //everytime you want to add a new mode, just add it here.

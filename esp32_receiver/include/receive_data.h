@@ -27,7 +27,6 @@ typedef struct __attribute__((packed)) {
     float   latencyMs;
     float   jitterMs;
     uint16_t missedDeadlines;
-    uint16_t voltage_values[8]; //8 channels, 0-7 inclusive of 0
 } robot_status_t;
 
 void receive_button_press(data_packet_t *packet);

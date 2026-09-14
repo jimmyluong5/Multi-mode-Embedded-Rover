@@ -121,3 +121,11 @@
 35	1379	8109285909475215	C:/Users/jimmy/Downloads/warehouse_proj/build/CMakeFiles/flash	29d278b80edd985f
 30	419	8109287489392769	CMakeFiles/warehouse_proj.dir/Core/Src/uart_control.c.obj	9b7a0a95c465e3fc
 421	753	8109287493301322	warehouse_proj.elf	eee43bd8a0f2c2d0
+303	2198	8110659446454223	CMakeFiles/warehouse_proj.dir/Core/Src/line_following.c.obj	c102a8a2e7036738
+285	2201	8110659446275055	CMakeFiles/warehouse_proj.dir/Core/Src/robot.c.obj	e23058ae7f3d713f
+317	2202	8110659446592725	CMakeFiles/warehouse_proj.dir/Core/Src/servo.c.obj	9875c04a7a0cf8c4
+73	2204	8110659444156701	CMakeFiles/warehouse_proj.dir/Core/Src/main.c.obj	d69ac3f955093283
+269	2205	8110659446119199	CMakeFiles/warehouse_proj.dir/Core/Src/uart_control.c.obj	9b7a0a95c465e3fc
+2206	3248	8110659465482781	warehouse_proj.elf	eee43bd8a0f2c2d0
+3249	5300	8110659475912957	CMakeFiles/flash	29d278b80edd985f
+3249	5300	8110659475912957	C:/Users/jimmy/Downloads/warehouse_proj/build/CMakeFiles/flash	29d278b80edd985f

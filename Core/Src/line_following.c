@@ -27,15 +27,15 @@ uint16_t Robot_Normalize_ADC(uint16_t raw_val, uint16_t max_val, uint16_t min_va
   }
 
   // Calculate normalized value scaled to 0-1000
-  return (uint16_t)(((uint32_t)(raw_val - min_val) * 1000U) /
-                    (max_val - min_val));
+  return (uint16_t)(((uint32_t)(raw_val - min_val) * 1000U) / (max_val - min_val));
 }
 
 void Robot_Read_Normalized_Sensors(uint16_t *normalized_values) {
   for (uint8_t ch = 0; ch < 8; ch++) {
+    //read the raw value from the external ADC via spi
     uint16_t raw = MCP3208_ReadChannel(&hspi1, ADC_CS_GPIO_Port, ADC_CS_Pin, ch);
     if (raw == MCP3208_ERROR_VALUE) {
-      normalized_values[ch] = 0;
+      normalized_values[ch] = 0; //if we get an error then set the normalized values to 0.
     } 
     
     else {
@@ -49,11 +49,13 @@ void Robot_LineFollow_Update(void) {
   // Rate-limit the control loop to 100Hz (every 10ms)
   static uint32_t last_loop_time = 0;
   uint32_t now = HAL_GetTick();
+
   if (now - last_loop_time < 10) {
     return;
   }
   last_loop_time = now;
 
+  //array of voltage values.
   static uint16_t filtered_adc[8] = {0};
   static bool calibrated = false;
   static int32_t last_error = 0;
@@ -74,11 +76,13 @@ void Robot_LineFollow_Update(void) {
     uint16_t raw = MCP3208_ReadChannel(&hspi1, ADC_CS_GPIO_Port, ADC_CS_Pin, ch);
     if (raw == MCP3208_ERROR_VALUE) {
       sensors[ch] = 0;
-    } else {
+    } 
+    else {
       // Exponential Moving Average (EMA) noise filter
       if (filtered_adc[ch] == 0) {
         filtered_adc[ch] = raw;
-      } else {
+      } 
+      else {
         float alpha = 0.3f;
         filtered_adc[ch] = (uint16_t)(alpha * raw + (1.0f - alpha) * filtered_adc[ch]);
       }

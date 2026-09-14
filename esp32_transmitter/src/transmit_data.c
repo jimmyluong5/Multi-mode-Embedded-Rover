@@ -220,9 +220,11 @@ void process_arrow_keys(data_packet_t *packet) {
         //imu page
         case PAGE_AUTO:
             if (clicked_left) {
+                auto_running = false;
                 current_page = PAGE_MENU;
                 active_mode = MENU_MODE;
                 packet->mode = active_mode;
+                //set the boolean flag back to false
                 ESP_LOGI(TAG, "Returning back to Menu Page");
             }
             else if (clicked_right) {
