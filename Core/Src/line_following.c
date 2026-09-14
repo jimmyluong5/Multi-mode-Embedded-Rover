@@ -73,6 +73,7 @@ void Robot_LineFollow_Update(void) {
 
   // 1. Read and filter all 8 sensors
   for (uint8_t ch = 0; ch < 8; ch++) {
+    //chip select allows the spi bus to listen to a specific device for data, so we choose to listen to the external ADC.
     uint16_t raw = MCP3208_ReadChannel(&hspi1, ADC_CS_GPIO_Port, ADC_CS_Pin, ch);
     if (raw == MCP3208_ERROR_VALUE) {
       sensors[ch] = 0;
@@ -89,6 +90,7 @@ void Robot_LineFollow_Update(void) {
       sensors[ch] = filtered_adc[ch];
 
       // Update calibration bounds dynamically
+      //okay just updating the minimum and maximum of the channels.
       if (sensors[ch] < sensor_min[ch]) {
         sensor_min[ch] = sensors[ch];
       }
@@ -101,57 +103,116 @@ void Robot_LineFollow_Update(void) {
 
 
   // 2. Identify consecutive black sensors to find the line position
-  int8_t best_start = -1;
-  int8_t best_len = 0;
+  int8_t best_start = -1; 
+  int8_t longest_len = 0; //this is the longest streak of black line channels that lined up we found
   
-  int8_t current_start = -1;
-  int8_t current_len = 0;
+  int8_t current_start = -1; //initialize to sentinel value.
+  int8_t current_len = 0; //this tracks the streak of channels that had consecutive.
+
+  //we need to keep track of the previous or the last channel we saw
+  //static variable because if the function ends, we need to know the previous value
+  static int prev_channel[8] = {0}; 
+  static int curr_channel[8] = {0};
+  //each bit will correspond to the channel.
 
   for (int8_t i = 0; i < 8; i++) {
-    if (sensors[i] >= BLACK_THRESHOLD) {
+
+    //if the sensors greater than the black threshold then we can keep track of how many consecutive black channels we got
+
+    if(sensors[i] >= BLACK_THRESHOLD) {
+      //this will always update 
+      //then we need to assign that index and set it high for the channel and
+      curr_channel[i] = 1; //sets the corresponding index if one of those channels meet the black threshold.
+
       if (current_start == -1) {
         current_start = i;
       }
-      current_len++;
-    } else {
-      if (current_len > best_len) {
+      
+      current_len++; //also increase the length of those consecutive black channels.
+    } 
+    else { //if we are not greater than the black threshold, that means we don't see a black channel then,
+      //we need to calculate the best/max number of consecutive black channels and its length. 
+      
+      //if the channels don't see the black line we must also set the current channel to 0, 
+      //since its a static variable, it will remember the old 1s, this will ensure that each function call,
+      //we get the most recent channel readings.
+      curr_channel[i] = 0;
+      if (current_len > longest_len) {
         best_start = current_start;
-        best_len = current_len;
+        longest_len = current_len;
       }
-      current_start = -1;
+      current_start = -1; //then reset the counter back.
       current_len = 0;
     }
   }
-  if (current_len > best_len) {
+
+
+
+
+  //updating the maxes.
+  if (current_len > longest_len) {
     best_start = current_start;
-    best_len = current_len;
+    longest_len = current_len;
   }
 
-  // Handle line recovery if no black sensors are found (best_len == 0)
-  if (best_len == 0) {
-    if (last_error < 0) {
-      // Line was to the left, spin left in place
-      Motor_Left_SetSpeed(-150);
-      Motor_Right_SetSpeed(150);
-      Servo_SetAngle(SERVO_ANGLE_LEFT);
-    } else {
-      // Line was to the right, spin right in place
-      Motor_Left_SetSpeed(150);
-      Motor_Right_SetSpeed(-150);
-      Servo_SetAngle(SERVO_ANGLE_RIGHT);
+  //after we have updated the maxes, then we check if its greater than 0.
+
+    //we need to update the previous channel to the current channel after we have toggled through all the channels 
+  //then we need to update the prev channel
+
+  //but we need to check if we actually got a successful sequence of black channels
+  if (longest_len>0) {
+    //then we can actually populate the previous channel with the current channel
+    for (int i = 0; i<8; i++) {
+      prev_channel[i] = curr_channel[i];
     }
-    return;
+
+  }
+
+
+  // Handle line recovery if no black sensors are found (longest_len == 0)
+
+  //if this longest_len is 0, then we have lost the line right.
+  if (longest_len == 0) {
+    //we need to look at the previous channels and follow the lines
+    //if any of the channels on the left are set high then we move left and vice versa for the right
+    for (int i = 0; i < 8; i++) {
+      //because i defined 
+      // 0 1 2 3 4 5 6 7 
+
+      // L L L C C R R R
+      if (i<4 && prev_channel[i] == 1) {
+        //then we must move the the motors to the right to find the line again
+        Motor_Right_SetSpeed(150);
+        Motor_Left_SetSpeed(150);
+        Servo_SetAngle(SERVO_ANGLE_LEFT);
+        break;
+      }
+      if (i>=4 && prev_channel[i] == 1) {
+        //then the line was on the right
+        Motor_Right_SetSpeed(-150);
+        Motor_Left_SetSpeed(150);
+        Servo_SetAngle(SERVO_ANGLE_LEFT);
+        break;
+      }
+    }
+    return; //just exits the function, code after this won't run, but its in a if statement so its fine.
   }
 
   int32_t error = 0;
-  int8_t best_end = best_start + best_len - 1;
+  int8_t best_end = best_start + longest_len - 1;
 
   // Check if we are centered: at least 3 black in a row centered on the middle (CH2, CH3, CH4 or CH3, CH4, CH5)
-  bool centered = (best_len >= CENTER_THRESHOLD && best_start >= 2 && best_end <= 5);
+  bool centered = (longest_len >= CENTER_THRESHOLD && best_start >= 2 && best_end <= 5);
+  //CENTER_THRESHOLD = 3, because the robot is in the center or the line is centered,
+  //as long as 3 consecutive channels are black.
 
+  //if true, then our error is 0 obviously.
   if (centered) {
     error = 0;
   } 
+
+  //then we are not centered.
   else {
     // Calculate center position of the consecutive black run (range 0 to 7000)
     int32_t position = (int32_t)((best_start + best_end) * 500);
@@ -177,6 +238,7 @@ void Robot_LineFollow_Update(void) {
   }
 
   // Clear the accumulated integral when centered to prevent over-correcting
+  //makes sense, if our robot is centered clear the integral term that measures our error from the center of the line.
   if (centered) {
     integral = 0;
   }
@@ -198,18 +260,29 @@ void Robot_LineFollow_Update(void) {
   int16_t right_motor_speed = base_speed - adjustment;
 
   // Clamp speeds to safe bounds
-  if (left_motor_speed > robot_speed) left_motor_speed = robot_speed;
-  if (left_motor_speed < -robot_speed) left_motor_speed = -robot_speed;
+  if (left_motor_speed > robot_speed) {
+    left_motor_speed = robot_speed;
+  }
+  if (left_motor_speed < -robot_speed)  {
+    left_motor_speed = -robot_speed;
+  }
 
-  if (right_motor_speed > robot_speed) right_motor_speed = robot_speed;
-  if (right_motor_speed < -robot_speed) right_motor_speed = -robot_speed;
-
+  if (right_motor_speed > robot_speed)  {
+    right_motor_speed = robot_speed;
+  }
+  if (right_motor_speed < -robot_speed)  {
+    right_motor_speed = -robot_speed;
+  }
   Motor_Left_SetSpeed(left_motor_speed);
   Motor_Right_SetSpeed(right_motor_speed);
 
   // 5. Update Servo Steering Angle (Dynamic Proportional Steering)
   int16_t target_servo_angle = SERVO_ANGLE_CENTER + (int16_t)((error * 45) / 3500);
-  if (target_servo_angle < SERVO_ANGLE_MIN) target_servo_angle = SERVO_ANGLE_MIN;
-  if (target_servo_angle > SERVO_ANGLE_MAX) target_servo_angle = SERVO_ANGLE_MAX;
+  if (target_servo_angle < SERVO_ANGLE_MIN) {
+    target_servo_angle = SERVO_ANGLE_MIN;
+  }
+  if (target_servo_angle > SERVO_ANGLE_MAX) {
+    target_servo_angle = SERVO_ANGLE_MAX;
+  }
   Servo_SetAngle((uint8_t)target_servo_angle);
 }

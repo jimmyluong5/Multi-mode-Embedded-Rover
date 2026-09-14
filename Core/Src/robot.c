@@ -46,18 +46,20 @@ void Robot_SetState(RobotState new_state) {
     break;
   case robot_manual:
     break; //we do nothing because the movement is controlled by the joystick
+
   case robot_idle:
     Motor_Stop();
     Servo_SetAngle(SERVO_ANGLE_CENTER);
     break;
+
   case robot_fault:
     Motor_Brake();
     Servo_SetAngle(SERVO_ANGLE_CENTER);
     break;
+
   case robot_auto:
-    Motor_Stop();
-    Servo_SetAngle(SERVO_ANGLE_CENTER);
-    break;
+    break; //do nothing because the uart will do it for us.
+
   default:
     Motor_Stop();
     Servo_SetAngle(SERVO_ANGLE_CENTER);
