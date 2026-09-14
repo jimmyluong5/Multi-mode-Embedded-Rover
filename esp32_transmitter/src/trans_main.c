@@ -118,18 +118,42 @@ void app_main(void) {
         //the arrow keys
         process_arrow_keys(&packet);
 
-        //read the analog adc voltafes from the joystick.
+        // Read the analog ADC voltages from the joystick
         uint16_t raw_x = read_joystick_horizontal();
         uint16_t raw_y = read_joystick_vertical();
-        
 
-
-        //deadband filter.
+        // Deadband filter for joystick readings
         deadband_filter(&packet, raw_x, raw_y);
 
-        
-        packet.speed = current_speed;
-        packet.mode = active_mode; //fill the mode into the packet.
+        // MODE-SPECIFIC SAFETY ISOLATION:
+        // Prevent menu navigation buttons and idle joystick drift from driving the rover
+        if (current_page == PAGE_MENU || current_page == PAGE_GITHUB || 
+            current_page == PAGE_LINKEDIN || current_page == PAGE_LEFTPAGE) {
+            packet.button_data = 0; // Clear button mask so UI button presses don't move motors
+            packet.joystick_x = 2000; // Force neutral center
+            packet.joystick_y = 2000; // Force neutral center
+            packet.speed = 0;
+            packet.mode = MENU_MODE;
+        } else if (current_page == PAGE_AUTO || current_page == PAGE_AUTO_DATA) {
+            extern bool auto_running;
+            packet.button_data = 0;
+            packet.joystick_x = 2000;
+            packet.joystick_y = 2000;
+            if (auto_running) {
+                packet.mode = AUTO_MODE;
+                packet.speed = current_speed;
+            } else {
+                packet.mode = MENU_MODE; // Stay stationary when stopped
+                packet.speed = 0;
+            }
+        } else if (current_page == PAGE_MANUAL || current_page == PAGE_MANUAL_DATA) {
+            packet.mode = MANUAL_MODE;
+            packet.speed = current_speed;
+        } else if (current_page == PAGE_IMU || current_page == PAGE_IMU_DATA) {
+            packet.mode = IMU_MODE;
+            packet.speed = current_speed;
+        }
+
         speaker_update(packet.button_data);
 
         // Transmit at a steady 40 Hz (every 25ms)

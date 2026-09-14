@@ -72,7 +72,7 @@ void print_joystick_values(void) {
 
         uint16_t x = read_joystick_horizontal();
         uint16_t y = read_joystick_vertical();
-        ESP_LOGI(TAG, "Joystick X: %u | Y: %u", x, y);
+        //ESP_LOGI(TAG, "Joystick X: %u | Y: %u", x, y);
     }
 }
 

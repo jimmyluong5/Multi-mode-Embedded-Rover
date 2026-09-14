@@ -37,6 +37,7 @@ typedef struct __attribute__((packed)) {
     float   latencyMs;
     float   jitterMs;
     uint16_t missedDeadlines;
+    
 } robot_status_t;
 extern robot_status_t robot_packet;
 extern bool robot_packet_received;

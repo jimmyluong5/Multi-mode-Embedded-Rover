@@ -47,12 +47,6 @@
 
 //#define LCD_BK_LIGHT_ON_LEVEL   0
 
-#define PIN_NUM_T_IRQ 42
-#define PIN_NUM_T_DO 9
-#define PIN_NUM_T_DIN 8
-#define PIN_NUM_T_CS 18
-#define PIN_NUM_T_CLK 7
-
 //To speed up transfers, every SPI transfer sends a bunch of lines. This define specifies how many. More means more memory use,
 //but less overhead for setting up / finishing transfers. Make sure 240 is dividable by this.
 #define PARALLEL_LINES 16
@@ -484,62 +478,6 @@ static void display_pretty_colors(spi_device_handle_t spi) {
     }
 }
 
-//initialize touch screen
-static const char *TAG = "TOUCHSCREEN";
-
-//global handle for touch spi interface
-static spi_device_handle_t touch_spi;
-
-//read a single 12 bit channel from the touch screen
-static uint16_t xpt2046_read_raw(spi_device_handle_t spi, uint8_t command) {
-    // Transaction buffer: 1 byte command + 2 bytes for the 12-bit response
-    uint8_t tx_buf[3] = { command, 0x00, 0x00 };
-    uint8_t rx_buf[3] = { 0 };
-
-    spi_transaction_t t;
-    memset(&t, 0, sizeof(t));
-    t.length = 8 * 3;          // 24 bits total transfer
-    t.tx_buffer = tx_buf;
-    t.rx_buffer = rx_buf;
-
-    esp_err_t ret = spi_device_polling_transmit(spi, &t);
-    assert(ret == ESP_OK);
-
-    // XPT2046 returns 12-bit data across bytes rx_buf[1] and rx_buf[2]
-    // Bit layout: [rx_buf[1] (bits 11-4)] and [upper 4 bits of rx_buf[2] (bits 3-0)]
-    uint16_t raw_val = ((uint16_t)rx_buf[1] << 4) | (rx_buf[2] >> 4);
-    return raw_val;
-}
-
-// Check if screen is currently touched and fetch raw coordinates
-// Returns 1 if pressed, 0 if not pressed
-int xpt2046_get_touch(spi_device_handle_t spi, uint16_t *x, uint16_t *y) {
-    // If using the IRQ pin: pin goes LOW when a touch is physically detected
-    if (gpio_get_level(PIN_NUM_T_IRQ) != 0) {
-        return 0; // didn't touch the screen.
-    }
-
-    // 0xD0 = Read X-position (12-bit resolution, differential)
-    // 0x90 = Read Y-position (12-bit resolution, differential)
-    *x = xpt2046_read_raw(spi, 0xD0);
-    *y = xpt2046_read_raw(spi, 0x90);
-
-    return 1; // Touched the screen.
-}
-
-static void touch_task(void *pvParameters) {
-    uint16_t raw_x = 0;
-    uint16_t raw_y = 0;
-
-    while (1) {
-        if (xpt2046_get_touch(touch_spi, &raw_x, &raw_y)) {
-            ESP_LOGI(TAG, "Touch detected -> Raw X: %u, Raw Y: %u", raw_x, raw_y);
-        }
-        // Check touch status every 50 ms
-        vTaskDelay(pdMS_TO_TICKS(50));
-    }
-}
-
 static spi_device_handle_t spi;
 
 extern bool auto_running;
@@ -606,8 +544,6 @@ void init_lcd_driver(void) {
         .pre_cb = lcd_spi_pre_transfer_callback, //Specify pre-transfer callback to handle D/C line
     };
 
-
-
     //Initialize the SPI bus
     //we initialize the spi bus with the hardware direct memory address. 
     // SPI_DMA_CH_AUTO tells ESP-IDF to automatically select and assign an available
@@ -616,30 +552,9 @@ void init_lcd_driver(void) {
     ret = spi_bus_initialize(LCD_HOST, &buscfg, SPI_DMA_CH_AUTO);
     ESP_ERROR_CHECK(ret); //check if this is successful or not.
 
-    // 1. Configure the T_IRQ pin as input with pull-up enabled
-    gpio_config_t irq_conf = {
-        .pin_bit_mask = (1ULL << PIN_NUM_T_IRQ),
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    gpio_config(&irq_conf);
-
-    // 2. Configure the SPI interface for the XPT2046
-    spi_device_interface_config_t touch_devcfg = {
-        .clock_speed_hz = 2 * 1000 * 1000,    // 2 MHz maximum for XPT2046
-        .mode = 0,                            // SPI mode 0
-        .spics_io_num = PIN_NUM_T_CS,         // GPIO 18
-        .queue_size = 1,
-    };
-
-    // 3. Attach the touch controller to the shared SPI bus
-    ret = spi_bus_add_device(LCD_HOST, &touch_devcfg, &touch_spi);
-    ESP_ERROR_CHECK(ret);
-
     //Attach the LCD to the SPI bus
     ret = spi_bus_add_device(LCD_HOST, &devcfg, &spi);
+    ESP_ERROR_CHECK(ret);
 
     //Initialize the LCD
     init_lcd(spi);
@@ -650,12 +565,7 @@ void init_lcd_driver(void) {
     // Draw the static image once to the screen
     display_pretty_colors(spi);
 
-    // Launch the touch reader as a FreeRTOS background task
-    
-    xTaskCreate(touch_task, "touch_task", 2048, NULL, 5, NULL);
-    //touch_task is the function, 2048 bytes allocated in memory for this task, priority is 5 so its a high priority.
-    //launch the animation task in the background on core 1
-
+    // Launch the animation task in the background on core 1
     xTaskCreatePinnedToCore(animation_task, "anim_task", 4096, NULL, 2, NULL, 1);
     //using core 1 because core 0 is the esp-now/wifi
     //4096 is the number of bytes allocated for this task.
