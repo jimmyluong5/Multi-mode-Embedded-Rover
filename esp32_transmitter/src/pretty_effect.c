@@ -342,6 +342,29 @@ static inline uint16_t apply_overlay(int x, int y, uint16_t bg_pixel, uint16_t h
 
     // 4. Auto Mode Page dynamic button
     if (current_page == PAGE_AUTO) {
+
+
+        //need to add the speed changing as we change the numbers
+        char speed_str[8];
+        uint8_t spd_pct = metrics_get_speed_percent();
+
+        snprintf(speed_str, sizeof(speed_str), "%u%%", spd_pct);
+
+        int spd_len = strlen(speed_str);
+        int spd_x0 = 65-(spd_len*6)/2;
+        int spd_y0 = 90;
+
+          if (y >= spd_y0 && y < spd_y0 + 7 && x >= spd_x0 && x < spd_x0 + (spd_len * 6)) {
+            int char_idx = (x - spd_x0) / 6;
+            int char_x0 = spd_x0 + char_idx * 6;
+            char c = speed_str[char_idx];
+
+            if (font5x7_get_pixel(c, char_x0, spd_y0, x, y)) {
+                return COLOR_TEXT_CYAN; // #00FFFF Electric Cyan text
+            }
+        }
+
+
         // Shifted down by +10 pixels: X [126 to 228], Y [54 to 98]
         if (x >= 126 && x <= 228 && y >= 54 && y <= 98) {
             
@@ -367,7 +390,8 @@ static inline uint16_t apply_overlay(int x, int y, uint16_t bg_pixel, uint16_t h
                         return SWAP16(0x07E0);
                     }
                 }
-            } else {
+            } 
+            else {
                 if (x >= 142 && x <= 148 && y >= 73 && y <= 79) {
                     return SWAP16(0xF800);
                 }
@@ -379,7 +403,8 @@ static inline uint16_t apply_overlay(int x, int y, uint16_t bg_pixel, uint16_t h
             
             if (auto_running) {
                 return is_border ? SWAP16(0x07E0) : SWAP16(0x01E0);
-            } else {
+            } 
+            else {
                 return is_border ? SWAP16(0xF800) : SWAP16(0x3800);
             }
         }

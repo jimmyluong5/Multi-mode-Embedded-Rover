@@ -114,6 +114,7 @@ void process_arrow_keys(data_packet_t *packet) {
                 switch(hovered_mode) {
                     case MANUAL_MODE:
                         //set the current page to the manual page
+                        auto_running = false;
                         failsafe_flag = false; //reset the flag so we don't trip from the time browsing the menu
                         last_user_active_time = pdTICKS_TO_MS(xTaskGetTickCount());
                         last_time_rx = pdTICKS_TO_MS(xTaskGetTickCount());
@@ -121,6 +122,9 @@ void process_arrow_keys(data_packet_t *packet) {
                         ESP_LOGI(TAG, "Entering Manual Mode Dashboard");
                         break;
                     case AUTO_MODE:
+                    //set the speed to 50%
+                        current_speed = 128;
+                        auto_running = false; //ensure the robot doesn't start moving on its own.
                         current_page = PAGE_AUTO;
                         ESP_LOGI(TAG, "Entering Auto Mode Dashboard");
                         break;
@@ -219,6 +223,7 @@ void process_arrow_keys(data_packet_t *packet) {
             break;
         //imu page
         case PAGE_AUTO:
+            
             if (clicked_left) {
                 auto_running = false;
                 current_page = PAGE_MENU;
@@ -236,6 +241,27 @@ void process_arrow_keys(data_packet_t *packet) {
                 auto_running = !auto_running;
                 //use the speaker 
                 speaker_pattern(1, 40, 0);
+            }
+
+            else if (clicked_up) {
+                //need to increase the speed
+                if (current_speed <= 255 - 13) {
+                    //increase the speed
+                    current_speed +=13;
+                }
+                else {
+                    //set the max speed to 255
+                    current_speed = 255;
+                }
+            }
+            else if (clicked_down) {
+                if (current_speed >= 13) {
+                    current_speed -=13;
+                }
+                else {
+                    //cap the speed
+                    current_speed = 0;
+                }
             }
 
             break;

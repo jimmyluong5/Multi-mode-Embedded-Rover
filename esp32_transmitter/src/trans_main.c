@@ -112,7 +112,8 @@ void app_main(void) {
 
 
         //read the buttons first, and we sample the 5 push buttons with the debounce algo 
-        packet.button_data = read_buttons();
+        uint8_t raw_buttons = read_buttons();
+        packet.button_data = raw_buttons;
 
         //call the new arrow and mode processor, then from reading the buttons we know how to process 
         //the arrow keys
@@ -158,7 +159,8 @@ void app_main(void) {
             packet.speed = current_speed;
         }
 
-        speaker_update(packet.button_data);
+        // Always beep the speaker on real physical button presses (even in menu/auto)
+        speaker_update(raw_buttons);
 
         // Transmit at a steady 40 Hz (every 25ms)
         uint32_t now = pdTICKS_TO_MS(xTaskGetTickCount());
