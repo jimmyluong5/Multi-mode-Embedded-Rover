@@ -146,9 +146,6 @@ void Robot_LineFollow_Update(void) {
     }
   }
 
-
-
-
   //updating the maxes.
   if (current_len > longest_len) {
     best_start = current_start;
@@ -161,13 +158,13 @@ void Robot_LineFollow_Update(void) {
   //then we need to update the prev channel
 
   //but we need to check if we actually got a successful sequence of black channels
-  if (longest_len>0) {
-    //then we can actually populate the previous channel with the current channel
-    for (int i = 0; i<8; i++) {
-      prev_channel[i] = curr_channel[i];
-    }
-
+  if (longest_len > 0 && longest_len < 6 ) {
+      //then we can actually populate the previous channel with the current channel
+      for (int i = 0; i<8; i++) {
+        prev_channel[i] = curr_channel[i];
+      }
   }
+   
 
 
   // Handle line recovery if no black sensors are found (longest_len == 0)
@@ -199,6 +196,32 @@ void Robot_LineFollow_Update(void) {
     return; //just exits the function, code after this won't run, but its in a if statement so its fine.
   }
 
+   // Static timer to drive straight through cross-junctions
+  static int16_t intersection_cooldown = 0;
+  int16_t fwd_speed = (robot_speed < 150) ? 150 : robot_speed;
+  // If in cooldown, keep driving straight through without checking PID:
+  if (intersection_cooldown > 0) {
+    intersection_cooldown--;
+    Servo_SetAngle(SERVO_ANGLE_CENTER);
+    Motor_Left_SetSpeed(fwd_speed);
+    Motor_Right_SetSpeed(fwd_speed);
+    last_error = 0;
+    return;
+  }
+
+  // Trigger Intersection Pass-Through when 5 or more sensors are black:
+  if (longest_len >= 5) {
+    intersection_cooldown = 12; // Lock straight for ~100ms
+    Servo_SetAngle(SERVO_ANGLE_CENTER);
+    Motor_Left_SetSpeed(fwd_speed);
+    Motor_Right_SetSpeed(fwd_speed);
+    last_error = 0;
+    return;
+  }
+
+
+  
+
   int32_t error = 0;
   int8_t best_end = best_start + longest_len - 1;
 
@@ -220,16 +243,21 @@ void Robot_LineFollow_Update(void) {
   }
 
   // 3. PID Control Calculation
-  float Kp = 0.15f;  // Proportional gain
-  float Ki = 0.001f; // Integral gain (adjust as needed, start small)
-  float Kd = 0.8f;   // Derivative gain
+  float Kp = 0.35f;  // Proportional gain
+  float Ki = 0.0f; // Integral gain (adjust as needed, start small) 
+  float Kd = 0.5f;   // Derivative gain
 
+//original was 
+//0.3
+//0.001
+//0.8
+  
   static int32_t integral = 0;
 
   // Accumulate the error over time (integral)
   integral += error;
 
-  // Anti-windup protection: clamp the integral to prevent massive overshoot
+  // Anti-windup protection: clamp the integral to prevents massive overshoot
   if (integral > 10000) {
     integral = 10000;
   }
@@ -256,8 +284,28 @@ void Robot_LineFollow_Update(void) {
     base_speed = 150; // Minimum driving speed
   }
 
-  int16_t left_motor_speed = base_speed + adjustment;
-  int16_t right_motor_speed = base_speed - adjustment;
+  
+  //calculate how sharp the turn is (0 - straight, 3500 = extreme corner)
+
+  int32_t turn_severity = abs(error);
+
+  //slow down base speed by up to 50% on sharp curves.
+  int16_t dynamic_speed = base_speed - (int16_t)((turn_severity*base_speed) /7000);
+
+
+  int16_t left_motor_speed = dynamic_speed + adjustment;
+  int16_t right_motor_speed = dynamic_speed - adjustment;
+
+  if (turn_severity > 2000) {
+    if (error>0) {
+      //sharp left, we gotta slow down and reverse left wheel to pivot sharply
+      left_motor_speed = -50;
+    }
+    else {
+      right_motor_speed = -50; //for sharp right turns
+    }
+  }
+
 
   // Clamp speeds to safe bounds
   if (left_motor_speed > robot_speed) {
@@ -276,8 +324,10 @@ void Robot_LineFollow_Update(void) {
   Motor_Left_SetSpeed(left_motor_speed);
   Motor_Right_SetSpeed(right_motor_speed);
 
-  // 5. Update Servo Steering Angle (Dynamic Proportional Steering)
-  int16_t target_servo_angle = SERVO_ANGLE_CENTER + (int16_t)((error * 45) / 3500);
+    // 5. Anticipation Steering (Reacts INSTANTLY the moment a curve begins)
+  int32_t error_rate = error - last_error;
+  int32_t steer_input = error + (error_rate * 3); // Leads into the turn immediately
+  int16_t target_servo_angle = SERVO_ANGLE_CENTER + (int16_t)((steer_input * 45) / 1350);
   if (target_servo_angle < SERVO_ANGLE_MIN) {
     target_servo_angle = SERVO_ANGLE_MIN;
   }
