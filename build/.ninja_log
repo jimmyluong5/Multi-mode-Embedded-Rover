@@ -54,3 +54,12 @@
 224	422	8110858334173965	warehouse_proj.elf	eee43bd8a0f2c2d0
 422	1781	8110858336155913	CMakeFiles/flash	29d278b80edd985f
 422	1781	8110858336155913	C:/Users/jimmy/Downloads/warehouse_proj/build/CMakeFiles/flash	29d278b80edd985f
+50	254	8110874823286662	CMakeFiles/warehouse_proj.dir/Core/Src/robot.c.obj	e23058ae7f3d713f
+34	267	8110875666141756	CMakeFiles/warehouse_proj.dir/Core/Src/main.c.obj	d69ac3f955093283
+52	313	8110875666322776	CMakeFiles/warehouse_proj.dir/Core/Src/uart_control.c.obj	9b7a0a95c465e3fc
+35	269	8110876876987442	CMakeFiles/warehouse_proj.dir/Core/Src/main.c.obj	d69ac3f955093283
+64	273	8110876877282604	CMakeFiles/warehouse_proj.dir/Core/Src/line_following.c.obj	c102a8a2e7036738
+50	310	8110876877141388	CMakeFiles/warehouse_proj.dir/Core/Src/uart_control.c.obj	9b7a0a95c465e3fc
+311	525	8110876879748627	warehouse_proj.elf	eee43bd8a0f2c2d0
+526	3226	8110876881889630	CMakeFiles/flash	29d278b80edd985f
+526	3226	8110876881889630	C:/Users/jimmy/Downloads/warehouse_proj/build/CMakeFiles/flash	29d278b80edd985f

@@ -50,8 +50,8 @@ static void OnDataRecv(const esp_now_recv_info_t *esp_now_info, const uint8_t *d
     int8_t rssi = (esp_now_info && esp_now_info->rx_ctrl) ? esp_now_info->rx_ctrl->rssi : 0;
     metrics_record_espnow_rx(rssi);
 
-    ESP_LOGI(TAG, "Telemetery RX OK! CPU: %u%%, Latency: %.1fms, RSSI: %d dBm",
-             robot_packet.cpuLoad, robot_packet.latencyMs, rssi);
+    ESP_LOGI(TAG, "Telemetery RX OK! CPU: %u%%, Latency: %.1fms, RSSI: %d dBm, Sensors: 0x%02X",
+             robot_packet.cpuLoad, robot_packet.latencyMs, rssi, robot_packet.lineSensors);
   } else {
     ESP_LOGW(TAG, "Telemetry size mismatch! Got %d bytes, expected %u bytes",
              data_len, (unsigned int)sizeof(robot_status_t));

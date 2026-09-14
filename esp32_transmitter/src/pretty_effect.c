@@ -409,6 +409,67 @@ static inline uint16_t apply_overlay(int x, int y, uint16_t bg_pixel, uint16_t h
             }
         }
 
+        // === 1. 8 Vertical Reflectance Sensor Boxes on Auto Page ===
+        // Channels 0 to 7 arranged across X [20 to 226], Y [181 to 248] (Shifted down by 6px)
+        if (y >= 181 && y <= 248 && x >= 20 && x <= 226) {
+            for (int ch = 0; ch < 8; ch++) {
+                int box_x0 = 20 + (ch * 26);
+                int box_w  = 20;
+                int box_y0 = 181;
+                int box_h  = 68;
+
+                if (x >= box_x0 && x < box_x0 + box_w) {
+                    bool is_border = (x == box_x0 || x == box_x0 + box_w - 1 || 
+                                      y == box_y0 || y == box_y0 + box_h - 1);
+                    
+                    // If telemetry received, check bit 'ch'. If not connected yet, test pattern!
+                    bool is_active = robot_packet_received ? 
+                                     ((robot_packet.lineSensors & (1 << ch)) != 0) : 
+                                     (ch == 3 || ch == 4); // Default test highlight middle 2 sensors
+
+                    if (is_border) {
+                        return SWAP16(0xFFE0); // Bright Yellow Outline Box
+                    }
+                    if (is_active) {
+                        return SWAP16(0x0000); // Solid Pitch Black when line detected
+                    } else {
+                        return SWAP16(0xFFFF); // Solid White when ground is white
+                    }
+                }
+            }
+        }
+
+        // === 2. 8 Bottom Ground Perspective Tiles on Auto Page ===
+        // Channels 0 to 7 arranged across Y [260 to 282]
+        if (y >= 260 && y <= 282 && x >= 10 && x <= 230) {
+            static const int16_t top_xl[8] = {29, 50, 73, 97, 121, 145, 169, 193};
+            static const int16_t top_xr[8] = {46, 70, 94, 118, 142, 165, 189, 209};
+            static const int16_t bot_xl[8] = {11, 41, 69, 95, 121, 147, 174, 201};
+            static const int16_t bot_xr[8] = {38, 65, 92, 118, 144, 171, 198, 227};
+
+            int dy = y - 260;
+            for (int ch = 0; ch < 8; ch++) {
+                int xl = top_xl[ch] + ((bot_xl[ch] - top_xl[ch]) * dy) / 22;
+                int xr = top_xr[ch] + ((bot_xr[ch] - top_xr[ch]) * dy) / 22;
+
+                if (x >= xl && x <= xr) {
+                    bool is_border = (x == xl || x == xr || y == 260 || y == 282);
+                    bool is_active = robot_packet_received ? 
+                                     ((robot_packet.lineSensors & (1 << ch)) != 0) : 
+                                     (ch == 3 || ch == 4);
+
+                    if (is_border) {
+                        return SWAP16(0xFFE0); // Bright Yellow Outline
+                    }
+                    if (is_active) {
+                        return SWAP16(0x0000); // Solid Pitch Black
+                    } else {
+                        return SWAP16(0xFFFF); // Solid White
+                    }
+                }
+            }
+        }
+
         return bg_pixel;
     }
 

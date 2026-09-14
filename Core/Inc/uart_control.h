@@ -1,4 +1,4 @@
-﻿#ifndef UART_CONTROL_H
+#ifndef UART_CONTROL_H
 #define UART_CONTROL_H
 
 #include <stdio.h>
@@ -37,6 +37,8 @@ typedef struct __attribute__((packed)) {
     float   jitterMs;
     uint16_t missedDeadlines;
 } robot_status_t;
+
+extern robot_status_t robot_status;
 
 //everytime you want to add a new mode, just add it here.
 typedef enum {

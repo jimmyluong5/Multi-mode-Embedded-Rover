@@ -1000,6 +1000,7 @@ static float    g_jitter_ms        = 2.1f;
 static uint16_t g_missed_deadlines = 0;
 static uint32_t last_loop_start_us = 0;
 static float    jitter_filter_us   = 2100.0f;
+robot_status_t  robot_status       = {0};
 
 // Call this at the START of your control loop
 void Telemetry_Loop_Start(void) {
@@ -1053,6 +1054,7 @@ void UART_Send_Telemetry(void) {
   robot_status_t status = {0};
     status.speedSetting     = (robot_speed * 100) / 999;
     status.direction        = (uint8_t)Robot_GetState();
+    status.lineSensors      = robot_status.lineSensors;
     status.emergencyStop    = (Robot_GetState() == robot_fault) ? 1 : 0;
 
     // Live STM32 Real-Time Superloop Performance

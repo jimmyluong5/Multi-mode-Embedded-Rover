@@ -6,6 +6,7 @@
 #include "robot.h"
 #include "motor.h"
 #include "servo.h"
+#include "uart_control.h"
 
 #define CENTER_THRESHOLD 4
 extern SPI_HandleTypeDef hspi1; // SPI1 for the MCP3208.
@@ -13,7 +14,7 @@ extern SPI_HandleTypeDef hspi1; // SPI1 for the MCP3208.
 // defining the sensor max and min.
 uint16_t sensor_min[8] = {0};
 uint16_t sensor_max[8] = {4095};
-
+extern robot_status_t robot_status;
 #define BLACK_THRESHOLD 2359 // 1.90V on 3.3V ADC
 
 uint16_t Robot_Normalize_ADC(uint16_t raw_val, uint16_t max_val, uint16_t min_val) {
@@ -100,6 +101,18 @@ void Robot_LineFollow_Update(void) {
     }
   }
 
+  //we need to add this to the telemetry data packet
+  robot_status.lineSensors = 0;
+  for (uint8_t ch = 0; ch<8; ch++) {
+    if (sensors[ch] >= BLACK_THRESHOLD) {
+      robot_status.lineSensors |= (1<<ch); //set the bits for the specific channel. 
+    }
+  }
+
+  // If rover is not in auto mode, exit early (telemetry is updated above)
+  if (Robot_GetState() != robot_auto) {
+    return;
+  }
 
 
   // 2. Identify consecutive black sensors to find the line position

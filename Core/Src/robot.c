@@ -68,9 +68,8 @@ void Robot_SetState(RobotState new_state) {
 }
 
 void Robot_Update(void) {
-  if (current_state == robot_auto) {
-    Robot_LineFollow_Update();
-  }
+  // Continuously sample sensors for live RF telemetry; exits early if not robot_auto
+  Robot_LineFollow_Update();
 }
 
 RobotState Robot_GetState(void) { 
