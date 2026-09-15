@@ -439,6 +439,14 @@ https://github.com/user-attachments/assets/510c7fbb-fd98-4aba-af33-ecc1c66d9171
 
 Building upon the initial prototype, this stage introduced a dedicated autonomous operating mode on the handheld controller alongside advanced navigation and recovery algorithms on the STM32:
 
+
+
+
+https://github.com/user-attachments/assets/5376047f-b03f-42eb-b190-9bbf119622eb
+
+
+
+
 #### 1. Handheld UI & Live 8-Channel Reflectance Visualizer (`PAGE_AUTO`)
 When switching into **Autonomous Mode**, the controller renders an industrial visualizer that mirrors the rover's optical tracking in real time at ~30 FPS:
 * **Dual-Tier Sensor Display**: Renders 8 vertical bars (Channels 1 to 8) and 8 trapezoidal ground-perspective tiles with bright yellow outlines.
