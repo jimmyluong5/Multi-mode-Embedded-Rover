@@ -63,3 +63,9 @@
 311	525	8110876879748627	warehouse_proj.elf	eee43bd8a0f2c2d0
 526	3226	8110876881889630	CMakeFiles/flash	29d278b80edd985f
 526	3226	8110876881889630	C:/Users/jimmy/Downloads/warehouse_proj/build/CMakeFiles/flash	29d278b80edd985f
+37	2171	8111823235016329	CMakeFiles/warehouse_proj.dir/Core/Src/main.c.obj	d69ac3f955093283
+254	2173	8111823237183810	CMakeFiles/warehouse_proj.dir/Core/Src/line_following.c.obj	c102a8a2e7036738
+239	2174	8111823237033806	CMakeFiles/warehouse_proj.dir/Core/Src/uart_control.c.obj	9b7a0a95c465e3fc
+2174	2948	8111823256389448	warehouse_proj.elf	eee43bd8a0f2c2d0
+2948	5151	8111823264125516	CMakeFiles/flash	29d278b80edd985f
+2948	5151	8111823264125516	C:/Users/jimmy/Downloads/warehouse_proj/build/CMakeFiles/flash	29d278b80edd985f

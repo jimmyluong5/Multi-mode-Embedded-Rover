@@ -12,7 +12,7 @@ C:/Users/jimmy/Downloads/warehouse_proj/Core/Src/uart_control.c:182:6:menu_both	
 C:/Users/jimmy/Downloads/warehouse_proj/Core/Src/uart_control.c:195:6:menu_uart	8	static
 C:/Users/jimmy/Downloads/warehouse_proj/Core/Src/uart_control.c:214:13:UART_SendMessage	16	static
 C:/Users/jimmy/Downloads/warehouse_proj/Core/Src/uart_control.c:222:6:UART_CONTROL_init	8	static
-C:/Users/jimmy/Downloads/warehouse_proj/Core/Src/uart_control.c:229:6:UART_CONTROL_update	656	static
+C:/Users/jimmy/Downloads/warehouse_proj/Core/Src/uart_control.c:229:6:UART_CONTROL_update	664	static
 C:/Users/jimmy/Downloads/warehouse_proj/Core/Src/uart_control.c:961:6:UART_CONTROL_check_timeout	8	static
 C:/Users/jimmy/Downloads/warehouse_proj/Core/Src/uart_control.c:973:18:UART_CONTROL_GetMode	4	static
 C:/Users/jimmy/Downloads/warehouse_proj/Core/Src/uart_control.c:980:6:DWT_Init	4	static

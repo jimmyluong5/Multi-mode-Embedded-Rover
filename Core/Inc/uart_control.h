@@ -11,15 +11,18 @@
 #define IMU_MODE 3
 #define TOTAL_MODES 4
 
-typedef struct __attribute__((packed)) {
-    uint8_t  button_data;
-    uint8_t  speed;
+typedef struct __attribute__((packed)) {     
+    uint8_t button_data;
+    uint8_t speed;
     uint16_t joystick_x;
     uint16_t joystick_y;
-    uint8_t  imu_x;
-    uint8_t  imu_y;
-    uint8_t  mode;
+    int16_t accel_x;
+    int16_t accel_y;
+    int16_t accel_z;
+    int16_t gyro_z;
+    uint8_t mode; //eventually it'll contain more modes.
 } data_packet_t;
+
 
 
 
