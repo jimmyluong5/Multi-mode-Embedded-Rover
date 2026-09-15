@@ -388,8 +388,8 @@ The communication architecture establishes a complete, closed-loop bidirectional
 | - Analog Joystick (ADC1)           | ----------> | - Decodes ESP-NOW data_packet_t  | ----------> | - LPUART1 RX (PA3): 0xAA + packet|
 | - 5-Way Button Matrix (Mode/Speed) |   (2.4GHz)  | - Forwards 0xAA + packet via TX  |  (Pin 42)   | - Drives TB6612FNG Dual Motors   |
 |                                    |             |                                  |             |                                  |
-| - 2.4" ILI9341 Diagnostics Display | <---------- | - Forwards robot_status_t via TX | <---------- | - LPUART1 TX (PA2): 0xBB + status|
-|   (Live Speeds, Ticks, RTOS stats) |   ESP-NOW   | - Captures 0xBB + status via RX  |  (Pin 2)    | - DWT Timer Benchmarks & Metrics |
+| - 3.2" ILI9341 Diagnostics Display | <---------- | - Forwards robot_status_t via TX | <---------- | - LPUART1 TX (PA2): 0xAA + status|
+|   (Live Speeds, Ticks, RTOS stats) |   ESP-NOW   | - Captures 0xAA + status via RX  |  (Pin 2)    | - DWT Timer Benchmarks & Metrics |
 +------------------------------------+             +----------------------------------+             +----------------------------------+
 ```
 
@@ -413,12 +413,12 @@ The manual driving implementation provides responsive, proportional throttle and
 * **Safety Watchdog & Inactivity Alarm**:
   * An integrated 5-second inactivity watchdog trips into fail-safe mode if wireless packets or user input stall, sounding an audible 8-beep alarm pattern on the piezo buzzer and automatically disarming the motors.
 * **Live Return Diagnostics**:
-  * The STM32 sends back 20 Hz binary telemetry frames (`0xAA + robot_status_t`) carrying live DWT superloop metrics (CPU load, latency, jitter, loop frequency) and link quality parameters directly overlaid on the 2.4" TFT LCD.
+  * The STM32 sends back 20 Hz binary telemetry frames (`0xAA + robot_status_t`) carrying live DWT superloop metrics (CPU load, latency, jitter, loop frequency) and link quality parameters directly overlaid on the 3.2" TFT LCD.
 
 <p align="center">
   <img src="./assets/telemetry_diagnostics_live.jpg" width="85%" alt="Live 4-Quadrant Diagnostic Dashboard on Handheld Controller" />
   <br>
-  <i>Handheld 2.4" TFT LCD displaying real-time 4-quadrant diagnostics: Live Joystick coordinates, Differential Motor PWM, ESP-NOW Link Quality, and STM32 Superloop Performance.</i>
+  <i>Handheld 3.2" TFT LCD displaying real-time 4-quadrant diagnostics: Live Joystick coordinates, Differential Motor PWM, ESP-NOW Link Quality, and STM32 Superloop Performance.</i>
 </p>
 
 <p align="center">
@@ -470,13 +470,13 @@ When switching into **Autonomous Mode**, the controller renders an industrial vi
 1. **Control Packet (`0xAA + data_packet_t`)**: Transmitted at 40 Hz from transmitter to STM32, containing 5-bit tactile button masks, commanded speed (`0-255`), 12-bit analog joystick X/Y deflections, and operating mode (`Manual`, `Autonomous`, `IMU`).
 2. **Telemetry Packet (`0xAA + robot_status_t`)**: Transmitted at 20 Hz from STM32 back to transmitter, delivering real-time CPU load percentage, loop rate (Hz), execution latency (ms), jitter (ms), and missed deadline counters to the controller's diagnostic UI.
 
-To provide manual override, multi-mode switching, and live diagnostics for the rover, a dedicated handheld wireless controller was developed using a dual-core **ESP32-S3** (240 MHz) and a 2.4-inch **ILI9341 SPI TFT LCD (240×320)**.
+To provide manual override, multi-mode switching, and live diagnostics for the rover, a dedicated handheld wireless controller was developed using a dual-core **ESP32-S3** (240 MHz) and a 3.2-inch **ILI9341 SPI TFT LCD (240×320)**.
 
 The controller provides an interactive graphical user interface (GUI), live telemetry monitoring, and low-latency packet transmission over **ESP-NOW**.
 
 #### 1. Hardware Architecture & Inputs
 * **Microcontroller**: Freenove ESP32-S3 WROOM (16MB Flash, 8MB PSRAM, Dual Xtensa LX7 cores running at 240 MHz).
-* **Display & Touch**: 2.4" 240×320 SPI LCD driven by an ILI9341 controller, sharing the SPI bus with an XPT2046 resistive touch controller.
+* **Display & Touch**: 3.2" 240×320 SPI LCD driven by an ILI9341 controller, sharing the SPI bus with an XPT2046 resistive touch controller.
 * **Analog 2D Joystick**: Multi-sampled through SAR ADC1 (GPIO 4 and GPIO 5) with 16× oversampling, software deadband filtering, and axis normalization.
 * **5-Way Tactile Button Matrix**: Multi-button input array with two-stage temporal debouncing for menu navigation, speed adjustments, and emergency stop.
 * **Audio Feedback**: PWM buzzer generating audible confirmation tones on button interactions and a 5-second inactivity watchdog alarm.
@@ -602,7 +602,7 @@ Phase 3: Time-of-Flight (ToF) Collision Detection & Auto-Braking
 - [x] Multi-subsystem UART diagnostic & control dashboard
 - [x] Dual ESP32-S3 ESP-NOW wireless link with binary command packet protocol (40 Hz)
 - [x] Dedicated dual UART routing on STM32 (USART1 on PA9/PA10 for ESP32 receiver, LPUART1 on PA2/PA3 for PC PuTTY console)
-- [x] Handheld wireless controller with 2.4" 240x320 ILI9341 LCD, 2D joystick grid, and 4 diagnostic telemetry quadrants
+- [x] Handheld wireless controller with 3.2" 240x320 ILI9341 LCD, 2D joystick grid, and 4 diagnostic telemetry quadrants
 - [x] Real-time proportional manual joystick driving with differential throttle mixing
 - [x] 5-second inactivity fail-safe timeout watchdog with multi-tone audio alarm
 - [x] Closed-loop STM32 DWT performance metrics & link telemetry transmission over ESP-NOW back to handheld transmitter LCD (20 Hz)
