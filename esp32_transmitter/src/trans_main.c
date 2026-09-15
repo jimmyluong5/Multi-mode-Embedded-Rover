@@ -15,6 +15,7 @@
 #include "metrics.h"
 #include "stdbool.h"
 #include "esp_mac.h"
+#include "imu.h"
 
 #define failsafe_time 2000
 bool failsafe_flag = false;
@@ -82,6 +83,7 @@ void app_main(void) {
     init_speaker();
     init_lcd_driver();
     UART_CONTROL_init();
+    init_imu();
     
 
     printf("\r\n==========================================\r\n");
@@ -96,20 +98,33 @@ void app_main(void) {
     while (1)
     {
         metrics_record_loop_start(); 
-
+        
+        
 
         // Check for serial console commands
         UART_CONTROL_update();
 
 
-        // Read joystick and buttons
+        // 1. Read raw IMU values
+        int16_t gx = 0, gy = 0, gz = 0;
+        int16_t ax = 0, ay = 0, az = 0;
+        imu_read_raw(&gx, &gy, &gz, &ax, &ay, &az);
 
-        //create a clean zeroed out packet strcuture for this 10ms time frame.
+        // 2. Process tilt orientation and apply deadband filter
+        int16_t tilt_x = 0, tilt_y = 0;
+        imu_process_tilt(ax, ay, &tilt_x, &tilt_y);
+
+        // Create a clean zeroed out packet structure for this 10ms time frame.
         data_packet_t packet = {0};
 
-        //print joystick debug readings to the console, not technically needed.
+        // Print joystick debug readings to the console, not technically needed.
         print_joystick_values();
 
+        // Place filtered IMU values into data packet
+        packet.accel_x = tilt_x;
+        packet.accel_y = tilt_y;
+        packet.accel_z = az;
+        packet.gyro_z  = gz;
 
         //read the buttons first, and we sample the 5 push buttons with the debounce algo 
         uint8_t raw_buttons = read_buttons();
@@ -128,8 +143,7 @@ void app_main(void) {
 
         // MODE-SPECIFIC SAFETY ISOLATION:
         // Prevent menu navigation buttons and idle joystick drift from driving the rover
-        if (current_page == PAGE_MENU || current_page == PAGE_GITHUB || 
-            current_page == PAGE_LINKEDIN || current_page == PAGE_LEFTPAGE) {
+        if (current_page == PAGE_MENU || current_page == PAGE_GITHUB || current_page == PAGE_LINKEDIN || current_page == PAGE_LEFTPAGE) {
             packet.button_data = 0; // Clear button mask so UI button presses don't move motors
             packet.joystick_x = 2000; // Force neutral center
             packet.joystick_y = 2000; // Force neutral center
@@ -154,7 +168,7 @@ void app_main(void) {
             packet.mode = MANUAL_MODE;
             packet.speed = current_speed;
         } 
-        else if (current_page == PAGE_IMU || current_page == PAGE_IMU_DATA) {
+        else if (current_page == PAGE_IMU) {
             packet.mode = IMU_MODE;
             packet.speed = current_speed;
         }
@@ -171,6 +185,15 @@ void app_main(void) {
             // Start the transmission time
             metrics_record_espnow_tx_start();
             transmit_data(receiver_mac, &packet);
+        }
+
+        // Print live IMU readings every 500ms
+        static uint32_t last_imu_print = 0;
+        if (now - last_imu_print >= 500) {
+            last_imu_print = now;
+            printf("[LIVE IMU] Tilt (Deadband) -> X: %6d  Y: %6d | Raw Accel -> [ax: %6d, ay: %6d, az: %6d]\r\n", 
+                   packet.accel_x, packet.accel_y, ax, ay, az);
+            fflush(stdout);
         }
         //check failsafe every iteration
         check_failsafe(&packet);

@@ -133,6 +133,11 @@ extern bool auto_running;
     extern const uint8_t autofirststop_end[]
     asm("_binary_autofirststop_jpg_end");
 
+    extern const uint8_t imufirst_start[]
+    asm("_binary_imufirst_jpg_start");
+    extern const uint8_t imufirst_end[]
+    asm("_binary_imufirst_jpg_end");
+
 
 
 //create array with ptrs to the images
@@ -270,8 +275,8 @@ esp_err_t decode_image(int frame_idx, uint16_t **pixels) {
             jd.inLen  = autofirst_end - autofirst_start;
             break;
         case PAGE_IMU:
-            jd.inData = leftright_start; // the page with double arrows
-            jd.inLen  = leftright_end - leftright_start;
+            jd.inData = imufirst_start; // the page with double arrows
+            jd.inLen  = imufirst_end - imufirst_start;
             break;
 
         // 2nd page of any of the modes (single left arrow)
@@ -282,7 +287,6 @@ esp_err_t decode_image(int frame_idx, uint16_t **pixels) {
 
             
         case PAGE_AUTO_DATA:
-        case PAGE_IMU_DATA:
         case PAGE_LEFTPAGE:
             jd.inData = left_start;
             jd.inLen  = left_end - left_start;

@@ -7,12 +7,12 @@
 #include "imu.h"
 
 
-static spi_handle_t imu_spi;
+static spi_device_handle_t imu_spi;
 #define GPIO_CS_IMU 47 //while talking to this imu, the spi pulls this low.
 #define IMU_HOST SPI2_HOST
+static const char *TAG = "IMU";
 
-
-void imu_init(void) {
+void init_imu(void) {
     //we need to initialize the spi or configure the same thing as the lcd
     spi_device_interface_config_t devcfg = { //createwa a confifguration struct, specifying, how the spi
         //hardware should communicate with the SPI.
@@ -23,6 +23,8 @@ void imu_init(void) {
     };
     //check if we got any errors when we attach the imu to the spi bus.
     ESP_ERROR_CHECK(spi_bus_add_device(IMU_HOST, &devcfg, &imu_spi));
+    
+    
     
     //so initialize the accelerometer
     //0x10 is the CRT1_XL register, which controls the accelerometer and gyroscope 
@@ -44,16 +46,38 @@ void imu_init(void) {
     //normal mode for the first 4 bits
     //0100_0100 = 0x44
     //0100 for normal mode (higher bits), then next two 01 for 500 degrees per second.
-     
 
+    //next we need to initialize the auto-increment register for the increment, so each time
+    //we receive multiple bytes of data we need to advance to the next register address.
 
+    //this register is the CTRL3_C at 0x12
+    imu_write_reg(0x12, 0x44);
+    //BOOT, BDU, H_LACTIVE, PP_OD, SIM, IF_INC, BLE, SW_RESET
+    //BOOT - 0 for normal
+    //bdu - 1
+    //h_lactive - 0
+    //pp_od - 0
+    //sim - 0
+    //if_inc - 1
+    //ble - 0
+    //sw_reset - 0
 
+    //0100_0100 - 0x44
+
+    
 }
 
 void imu_write_reg(uint8_t reg, uint8_t val) {
-    uint8_t tx_data[2] = {
+    uint8_t tx_data[2] = { //contains 2 bytes, 1 byte for each index.
         reg & 0x7F, val //bit 7 for write.
     }; //transmit the value in the register.
+
+    //reg & 0x7F bitwise AND, where 0x7F is 0111_1111, then the 2nd byte will be the value want to write to the register.
+    //so we are guaranteed to have a 0 in the 7th bit, which means to write.
+    //for the imu, to read it would be this 1111_1111
+
+    //for write it would be 0111_1111
+    //0 for write, 1 for read in the 7th bit., 7, 6, 5, 4, 3, 2, 1, 0
 
     spi_transaction_t t = {
         .length = 16, //2 bytes 
@@ -69,6 +93,7 @@ uint8_t imu_read_reg(uint8_t reg) {
     uint8_t tx_data[2] = {
         reg | 0x80, 0x00 //bit 7 is a 1 for a read
     };
+    //0x80 = 1000_0000, guaranteed to have a 1 in the 7th bit meaning to write.
     uint8_t rx_data[2] = {0};
     spi_transaction_t t = {
         .length = 16,
@@ -80,3 +105,76 @@ uint8_t imu_read_reg(uint8_t reg) {
     return rx_data[1]; //return the first byte.
 
 }
+
+//technically we don't need gx or gy, because we are not rotating about the x or y axis.
+
+//and we can't remove them, because the auto-increment register cannot skip bytes
+//so we just keep them.
+void imu_read_raw(int16_t *gx, int16_t *gy, int16_t *gz, int16_t *ax, int16_t *ay, int16_t *az) {
+
+    //create the transmitting and receiving buffers
+    //the total spi transaction of bytes like receiving and transmitting is 13 bytes
+    //1 byte just for commanding the spi that we want to read
+    //
+    /* Gyro X	OUTX_L_G (0x22)	OUTX_H_G (0x23)	2 bytes
+    Gyro Y	OUTY_L_G (0x24)	OUTY_H_G (0x25)	2 bytes
+    Gyro Z	OUTZ_L_G (0x26)	OUTZ_H_G (0x27)	2 bytes
+    Accel X	OUTX_L_XL (0x28)	OUTX_H_XL (0x29)	2 bytes
+    Accel Y	OUTY_L_XL (0x2A)	OUTY_H_XL (0x2B)	2 bytes
+    Accel Z	OUTZ_L_XL (0x2C)	OUTZ_H_XL (0x2D)	2 bytes */
+    uint8_t tx_data[13] = {0x22 | 0x80}; //logical OR, 
+    //all the existing 1s surivve
+    //first byte must be 1000_0000 so we want to read
+    //0x22 - is the first register we want to read
+    //0x80 - 1000_0000
+
+    uint8_t rx_data[13] = {0x22 | 0x00}; //or 0, because we want to write into this buffer.
+
+    spi_transaction_t t = {
+        .length = 13*8, //13 bytes * 8 bits each byte = 104 bits.
+        .tx_buffer = tx_data,
+        .rx_buffer = rx_data,
+    };
+    spi_device_polling_transmit(imu_spi, &t); //place imu on spi bus.
+
+    //rx_data[0] is dummy byte during address transmit. 
+    // Gyroscope X, Y, Z (Registers 0x22 - 0x27)
+    *gx = (int16_t)((rx_data[2]  << 8) | rx_data[1]);
+    *gy = (int16_t)((rx_data[4]  << 8) | rx_data[3]);
+    *gz = (int16_t)((rx_data[6]  << 8) | rx_data[5]);
+    // Accelerometer X, Y, Z (Registers 0x28 - 0x2D)
+    *ax = (int16_t)((rx_data[8]  << 8) | rx_data[7]);
+    *ay = (int16_t)((rx_data[10] << 8) | rx_data[9]);
+    *az = (int16_t)((rx_data[12] << 8) | rx_data[11]);
+
+}
+
+// Deadband threshold: ~7 degrees tilt (~1000 counts on +/-4g range)
+#define IMU_DEADBAND 1000
+
+void imu_process_tilt(int16_t raw_ax, int16_t raw_ay, int16_t *out_x, int16_t *out_y) {
+    // 1. Orient directions:
+    // Tilt right -> positive X (+steering right)
+    // Tilt forward/down -> positive Y (+throttle forward)
+    int16_t mapped_x = -raw_ax;
+    int16_t mapped_y = -raw_ay;
+
+    // 2. Deadband filter for X (Steering)
+    if (abs(mapped_x) < IMU_DEADBAND) {
+        *out_x = 0; // Lock to neutral zero
+    } else {
+        *out_x = mapped_x;
+    }
+
+    // 3. Deadband filter for Y (Throttle)
+    if (abs(mapped_y) < IMU_DEADBAND) {
+        *out_y = 0; // Lock to neutral zero
+    } else {
+        *out_y = mapped_y;
+    }
+}
+
+
+
+
+

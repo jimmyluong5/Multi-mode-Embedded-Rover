@@ -20,8 +20,10 @@ typedef struct __attribute__((packed)) {
     //uint16_t sequence;
     uint16_t joystick_x;
     uint16_t joystick_y;
-    uint8_t imu_x;
-    uint8_t imu_y;
+    int16_t accel_x;
+    int16_t accel_y;
+    int16_t accel_z;
+    int16_t gyro_z;
     uint8_t mode; //eventually it'll contain more modes.
 } data_packet_t;
 
@@ -51,11 +53,10 @@ typedef enum {
     PAGE_AUTO,
     PAGE_AUTO_DATA,
     PAGE_IMU,
-    PAGE_IMU_DATA,
     PAGE_GITHUB,
     PAGE_LINKEDIN,
     PAGE_LEFTPAGE,
-    PAGE_MAX_COUNT // TOTAL NUMBER OF PAGES (4)
+    PAGE_MAX_COUNT 
 } page_t;
 
 #define PAGE_EMPTY     PAGE_LEFTPAGE

@@ -280,18 +280,6 @@ void process_arrow_keys(data_packet_t *packet) {
                 packet->mode = active_mode;
                 ESP_LOGI(TAG, "Returning back to Menu Page");
             }
-            else if (clicked_right) {
-                current_page = PAGE_IMU_DATA;
-                ESP_LOGI(TAG, "IMU Data Page");
-            }
-            //logic for clicking the center button, we can toggle the flag and start the motors
-            break;
-
-        case PAGE_IMU_DATA:
-            if (clicked_left) {
-                current_page = PAGE_IMU;
-                ESP_LOGI(TAG, "Returning back to IMU Page");
-            }
             break;
        
         case PAGE_GITHUB:

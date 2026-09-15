@@ -3,6 +3,7 @@ idf_component_register(
         "adc.c"
         "decode_image.c"
         "font5x7.c"
+        "imu.c"
         "joystick.c"
         "lcd.c"
         "led.c"
@@ -39,4 +40,5 @@ idf_component_register(
         "images/secondpagedata.jpg"
         "images/autofirst.jpg"
         "images/autofirststop.jpg"
+        "images/imufirst.jpg"
 )

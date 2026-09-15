@@ -500,7 +500,7 @@ static void animation_task(void *pvParameters) {
             vTaskDelay(pdMS_TO_TICKS(40));
         } 
         else if (current_page == PAGE_MANUAL || current_page == PAGE_MANUAL_DATA || current_page == PAGE_AUTO ||
-                 current_page == PAGE_AUTO_DATA || current_page == PAGE_IMU_DATA) {
+                 current_page == PAGE_AUTO_DATA || current_page == PAGE_IMU) {
             // Decode the background image once upon entering the page
             if (last_rendered_page != current_page) {
                 decode_image(0, &pixels);
