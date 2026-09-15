@@ -522,6 +522,8 @@ static void animation_task(void *pvParameters) {
         }
     }
 }
+
+
 void init_lcd_driver(void) {
     esp_err_t ret;
     spi_bus_config_t buscfg = {
@@ -538,6 +540,8 @@ void init_lcd_driver(void) {
 #else
         .clock_speed_hz = 26 * 1000 * 1000,     //Clock out at 26 MHz
 #endif
+
+//initialized the spi here
         .mode = 0,                              //SPI mode 0
         .spics_io_num = PIN_NUM_CS,             //CS pin
         .queue_size = 7,                        //We want to be able to queue 7 transactions at a time
