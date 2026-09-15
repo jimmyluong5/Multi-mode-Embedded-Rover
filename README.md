@@ -118,27 +118,43 @@ This made it possible to test individual subsystems without repeatedly modifying
 
 ### 5. Autonomous Line Following
 
-After calibrating the reflectance sensors, autonomous line following was implemented on the STM32G431KB.
-
-The rover continuously samples all eight channels through the MCP3208 and uses the sensor distribution to determine how far the rover has moved away from the desired path.
-
-Motor commands are then adjusted in real time to steer the rover back toward the line.
-
-This resulted in a complete sensing and control loop
+After calibrating the reflectance sensors, closed-loop autonomous line following was engineered on the **STM32G431KB** (ARM Cortex-M4), combining real-time optical sensing, digital filtering, dynamic speed profiling, and trajectory recovery.
 
 ```text
-QTRX-MD-08A
-      ↓
-   MCP3208
-      ↓
-STM32G431KB
-      ↓
-Line-Following Logic
-      ↓
-  TB6612FNG
-      ↓
- FIT0484 Motors
++-----------------------------------------------------------------------------------------------+
+|                                  Autonomous Navigation Pipeline                               |
+|                                                                                               |
+|  [ QTRX-MD-08A Reflectance Array ]                                                            |
+|                 | (8x Analog Voltages)                                                        |
+|                 v                                                                             |
+|  [ MCP3208 12-bit SPI ADC ] ---> [ Exponential Moving Average (EMA) Digital Filtering ]       |
+|                                                              |                                |
+|                                                              v                                |
+|                                        [ Closed-Loop PID Steering Controller ]                |
+|                                        [ + Dynamic Corner Braking & Speed Profiling ]         |
+|                                        [ + Trajectory Memory & Lost-Line Recovery ]           |
+|                                                              |                                |
+|                                      +-----------------------+-----------------------+        |
+|                                      |                                               |        |
+|                                      v                                               v        |
+|                    [ Front Steering Servo (SG90) ]                 [ Dual TB6612FNG PWM Drivers ]
+|                    (Ackerman Proportional Steer)                   (Differential Motor Traction)
++-----------------------------------------------------------------------------------------------+
 ```
+
+#### Core Control & Navigation Algorithms:
+1. **12-bit SPI Sensor Acquisition & Digital Noise Filtering**:
+   * Acquires all 8 reflectance channels over high-speed SPI from the **MCP3208** ADC at 100 Hz.
+   * Applies a per-channel **Exponential Moving Average (EMA)** filter to reject optical noise and ambient surface variations.
+2. **Closed-Loop PID Steering & Anticipation Lead**:
+   * Computes normalized weighted-average line error from active reflectance channels.
+   * Uses proportional-derivative control with rate-of-error anticipation to drive the front steering servo (`38 deg` to `153 deg`), eliminating corner entry lag.
+3. **Dynamic Corner Braking & Velocity Profiling**:
+   * Automatically calculates track curvature severity. When taking sharp corners, the controller dynamically throttles inner wheel PWM and reduces base speed to prevent corner drift, rollover, or wheel spin.
+4. **Trajectory Memory & Deterministic Lost-Line Recovery**:
+   * Maintains continuous historical sensor state (`prev_channel`). If the line is momentarily lost (e.g. abrupt angles), the rover references its last departure trajectory vector to steer back onto the track automatically.
+5. **Intersection Pass-Through State Machine**:
+   * Detects full-width grid intersections (5+ simultaneous active sensors) and initiates a timed lock-out pass-through to navigate across cross-junctions without false turns.
 ### 6. CAD Design
 
 After validating the rover's electronics and autonomous navigation on the initial prototype, the mechanical components for the final rover were designed in CAD.
@@ -468,7 +484,21 @@ The controller provides an interactive graphical user interface (GUI), live tele
 * **Main Menu UI**: Plays a 15-frame animated rover sequence with an active pulsing yellow hover cursor to select operating modes (**Manual Mode**, **Autonomous Mode**, **IMU Mode**).
 * **Showcase Pages**: Dedicated QR code and documentation screens for GitHub and LinkedIn.
 
-#### 3. Real-Time Manual Dashboard & 4-Quadrant Diagnostics
+#### 3. Real-Time Autonomous Dashboard & 8-Channel Reflectance Visualizer (`PAGE_AUTO`)
+When switching into **Autonomous Mode**, the handheld controller renders a dedicated industrial visualizer that tracks the rover's live navigation state in real time at ~30 FPS:
+
+1. **Dual-Tier 8-Channel Line Sensor Visualizer**:
+   * **Vertical Bar Array (Channels 1 to 8)**: Displays 8 vertical bars with bright yellow outline borders, dynamically mapped across the sensor array.
+   * **3D Perspective Ground-View Tiles**: Renders 8 trapezoidal perspective ground tiles reflecting the sensor bar's optical alignment with the floor.
+   * **Real-Time Active Binary Fill**: As the rover rolls over the line, channels detecting dark surface turn **Solid Pitch Black** (`0x0000`), while light background renders **White** (`0xFFFF`), fed directly by incoming `robot_packet.lineSensors` telemetry over ESP-NOW.
+2. **Dynamic Autonomous Speed Readout & Adjustment**:
+   * Displays the active commanded base speed (e.g. `50%`) in high-contrast Electric Cyan.
+   * Directional D-pad buttons allow on-the-fly speed adjustments in 5% increments dispatched directly over RF.
+3. **Interactive Run / Stop Safety State**:
+   * Features a prominent visual status indicator: **▶ RUNNING** (Green) vs **■ STOPPED** (Red).
+   * Center button toggles autonomous execution, immediately commanding motor cutoff when paused or exiting the mode.
+
+#### 4. Real-Time Manual Dashboard & 4-Quadrant Diagnostics
 When entering **Manual Mode**, the controller renders an industrial diagnostic dashboard with live telemetry overlays across four dedicated quadrants:
 
 1. **Quadrant 1: Joystick Data (Top Left)**:
@@ -489,7 +519,7 @@ When entering **Manual Mode**, the controller renders an industrial diagnostic d
    * **Missed DL**: Missed loop deadline counter (execution taking >10 ms).
    * **Loop Rate**: Deterministic superloop update frequency (~184 Hz).
 
-#### 4. Real-Time System Performance & RTOS Telemetry
+#### 5. Real-Time System Performance & RTOS Telemetry
 To benchmark control loop determinism (comparing FreeRTOS preemptive multitasking vs bare-metal superloops), a dedicated telemetry module (`metrics.c` on ESP32 & `uart_control.c` on STM32) tracks real-time performance indicators:
 
 | Telemetry Metric | Measurement Method | Typical Reading | Purpose |
@@ -501,7 +531,7 @@ To benchmark control loop determinism (comparing FreeRTOS preemptive multitaskin
 | **Loop Rate** | Hardware period reciprocal (`1 / dt`) | `~100–185 Hz` | Confirms responsive control execution |
 | **Link RSSI** | ESP-NOW WiFi MAC RX Control Metadata | `-24 to -48 dBm` | Verifies wireless link budget and antenna range |
 
-#### 5. Wireless Communication Protocol (`ESP-NOW`) & Safety Watchdog
+#### 6. Wireless Communication Protocol (`ESP-NOW`) & Safety Watchdog
 Control packets (`data_packet_t`) are packed into a compact binary structure and transmitted as 2.4 GHz peer-to-peer unicast packets to the receiver ESP32 on the rover:
 ```c
 typedef struct __attribute__((packed)) {

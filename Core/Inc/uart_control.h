@@ -38,8 +38,6 @@ typedef struct __attribute__((packed)) {
     uint16_t missedDeadlines;
 } robot_status_t;
 
-extern robot_status_t robot_status;
-
 //everytime you want to add a new mode, just add it here.
 typedef enum {
   UART_MODE_MENU,
