@@ -118,7 +118,7 @@ This made it possible to test individual subsystems without repeatedly modifying
 
 
 
-### 5. Autonomous Line Following
+### 4. Autonomous Line Following
 
 After calibrating the reflectance sensors, autonomous line following was implemented on the STM32G431KB.
 
@@ -142,7 +142,7 @@ Line-Following Logic
  FIT0484 Motors
 ```
 
-### 6. CAD Design
+### 5. CAD Design
 
 After validating the rover's electronics and autonomous navigation on the initial prototype, the mechanical components for the final rover were designed in CAD.
 
@@ -178,7 +178,7 @@ The completed assembly was used to check wheel placement, steering clearance, ch
 
 The CAD models used for the rover can be found in the [`CAD Models`](./CAD%20Models) directory.
 
-### 7. 3D-Printed Chassis
+### 6. 3D-Printed Chassis
 
 After validating the electronics and navigation system on the cardboard prototype, the rover was transferred to a custom **3D-printed chassis**.
 
@@ -196,7 +196,7 @@ This provided a much more rigid and repeatable platform for continued developmen
 <img width="960" height="1280" alt="image" src="https://github.com/user-attachments/assets/773da8c9-128c-478e-ad3e-9cb9869b7452" />
 
 
-### 8. Servo-Based Suspension Testing
+### 7. Servo-Based Suspension Testing
 
 After transferring the rover to the 3D-printed chassis, I tested a **servo-actuated front suspension system** using an SG90 servo.
 
@@ -211,7 +211,7 @@ A short demonstration clip is included below.
 The test helped validate the mechanical design before continuing with wireless control and additional rover integration.
 
 
-### 9. ESP-NOW Wireless Communication
+### 8. ESP-NOW Wireless Communication
 
 The current stage of the project focuses on wireless communication between two **ESP32-S3 modules**.
 
@@ -245,7 +245,7 @@ The receiving ESP32-S3 unpacks the command byte and executes actions depending o
 Initial testing has successfully demonstrated wireless command transmission and execution using LEDs.
 
 
-### 10. Wireless Button Controller Prototype
+### 9. Wireless Button Controller Prototype
 
 After successfully establishing ESP-NOW communication between the two ESP32-S3 modules, I built a physical **button controller prototype** to provide direct wireless input to the rover.
 
@@ -299,7 +299,7 @@ Add the following under **Completed**
 The wireless controller can now be used as the basis for full manual rover control alongside the autonomous line-following system.
 
 
-### 11. Bidirectional Serial Monitoring and Wireless Command Debugging
+### 10. Bidirectional Serial Monitoring and Wireless Command Debugging
 
 After completing the wireless button controller prototype, I expanded the debugging interface so that both the transmitter and receiver ESP32-S3 modules can display controller activity through their respective serial connections.
 
@@ -360,7 +360,7 @@ This significantly simplifies debugging because communication problems can be is
 
 The wireless controller now supports both LED-based command verification and real-time serial debugging, providing a more reliable way to confirm that ESP-NOW packets are being received and interpreted correctly.
 
-### 12. Full Rover Integration & Multi-Subsystem Control
+### 11. Full Rover Integration & Multi-Subsystem Control
 
 With the 3D-printed chassis, power distribution, and core firmware validated, the rover has progressed to a **fully integrated, multi-mode platform**. All critical subsystems are now orchestrated directly by the STM32G431KB state machine:
 
@@ -375,7 +375,7 @@ With the 3D-printed chassis, power distribution, and core firmware validated, th
   * `[v]` / `[n]` Real-Time ADC Reflectance & Surface Classification
 
 
-### 13. Custom ESP32-S3 Wireless Handheld Controller & Real-Time Telemetry Dashboard
+### 12. Custom ESP32-S3 Wireless Handheld Controller & Real-Time Telemetry Dashboard
 <img width="1920" height="2560" alt="photo_2026-09-06_17-12-59" src="https://github.com/user-attachments/assets/a79483f9-5157-4bf6-b995-1d22fd751318" />
 <img width="1920" height="2560" alt="image" src="https://github.com/user-attachments/assets/eae1eeb8-ab55-4b0b-a11c-10c700d05e61" />
 
@@ -395,7 +395,7 @@ The communication architecture establishes a complete, closed-loop bidirectional
 +------------------------------------+             +----------------------------------+             +----------------------------------+
 ```
 
-### 14. Inter-MCU UART Bridge & Hardware Verification (ESP32-S3 <-> STM32G431KB)
+### 13. Inter-MCU UART Bridge & Hardware Verification (ESP32-S3 <-> STM32G431KB)
 
 To complete the end-to-end communication pipeline, dedicated hardware UART communication was established and verified between the rover's on-board **ESP32-S3 Receiver** and the **STM32G431KB** microcontroller:
 
@@ -405,7 +405,7 @@ To complete the end-to-end communication pipeline, dedicated hardware UART commu
   * **ST-Link Debug Console**: **STM32 PA2 (TX) / PA3 (RX)** via LPUART1 @ 115,200 baud (keeps PuTTY console communication completely isolated from rover control traffic).
   * **Common Ground (GND)** connected across all modules with regulated 5V buck power distribution.
 
-### 15. Real-Time Proportional Manual Control & Closed-Loop Wireless Driving
+### 14. Real-Time Proportional Manual Control & Closed-Loop Wireless Driving
 
 The manual driving implementation provides responsive, proportional throttle and differential steering mapped directly from the analog 2D joystick on the handheld controller to the rover's TB6612FNG motor driver:
 
@@ -437,7 +437,7 @@ https://github.com/user-attachments/assets/510c7fbb-fd98-4aba-af33-ecc1c66d9171
 
 
 
-### 16. Autonomous Mode with Handheld UI & Live Sensor Array Dashboard
+### 15. Autonomous Mode with Handheld UI & Live Sensor Array Dashboard
 
 Building upon the initial prototype, this stage introduced a dedicated autonomous operating mode on the handheld controller alongside advanced navigation and recovery algorithms on the STM32:
 
@@ -462,7 +462,7 @@ When switching into **Autonomous Mode**, the controller renders an industrial vi
 * **Trajectory Memory & Lost-Line Recovery**: Maintains historical sensor states (`prev_channel`) so that if line continuity is lost, the rover references its last departure trajectory vector to steer back onto the track automatically.
 * **Intersection Pass-Through**: Initiates a timed straight-line pass-through when 5+ sensors trigger simultaneously, navigating warehouse grid cross-junctions without false turns.
 
-### 17. Real-Time IMU Gesture & Tilt Control Mode (`PAGE_IMU`)
+### 16. Real-Time IMU Gesture & Tilt Control Mode (`PAGE_IMU`)
 
 
 
