@@ -10,11 +10,13 @@
 #include "joystick.h"
 #include "metrics.h"
 #include "font5x7.h"
+#include "imu.h"
 #include <stdbool.h>
 #define SWAP16(c) (((c) >> 8) | (((c) & 0xFF) << 8))
 
 uint16_t *pixels = NULL;
 extern bool failsafe_flag;
+
 #define COLOR_JOYSTICK      SWAP16(0xFD00)
 #define COLOR_DOT_BORDER    SWAP16(0xC260)
 #define COLOR_PULSE_YELLOW  SWAP16(0xFF66) // #FFEE33
@@ -22,6 +24,7 @@ extern bool failsafe_flag;
 #define COLOR_TEXT_CYAN     SWAP16(0x07FF) // #00FFFF Electric Cyan
 
 extern bool auto_running;
+extern bool imu_running;
 
 // Center Y of each pill button on the 240x320 screen
 static const int pill_center_y[TOTAL_MODES] = {
@@ -467,6 +470,139 @@ static inline uint16_t apply_overlay(int x, int y, uint16_t bg_pixel, uint16_t h
                         return SWAP16(0xFFFF); // Solid White
                     }
                 }
+            }
+        }
+
+        return bg_pixel;
+    }
+
+    // 5. IMU Mode Page: Dynamic Tilt Dot, PWM Speed, Start/Stop Button & Live Values
+    if (current_page == PAGE_IMU) {
+        static int imu_dot_x = 88;
+        static int imu_dot_y = 183;
+        static int pitch_val = 0;
+        static int roll_val = 0;
+
+        static char speed_str[8];
+        static char pitch_str[8];
+        static char roll_str[8];
+
+        static int spd_len = 0, spd_x0 = 0, pitch_len = 0, pitch_x0 = 0, roll_len = 0, roll_x0 = 0;
+
+
+        if (y == 0 && x == 0) {
+            imu_get_screen_coords(&imu_dot_x, &imu_dot_y);
+            imu_get_tilt_deg(&pitch_val, &roll_val);
+
+            //calculate strings once per frame here;
+            snprintf(speed_str, sizeof(speed_str), "%u%%", metrics_get_speed_percent());
+            spd_len = strlen(speed_str);
+            spd_x0 = 66-(spd_len*6)/2;
+
+            snprintf(pitch_str, sizeof(pitch_str), "%+d*", pitch_val);
+            pitch_len = strlen(pitch_str);
+            pitch_x0 = 203 - (pitch_len * 6) / 2;
+
+            snprintf(roll_str, sizeof(roll_str), "%+d*", roll_val);
+            roll_len = strlen(roll_str);
+            roll_x0 = 203 - (roll_len * 6) / 2; //moves roll to the right
+        }
+
+        // A. Dynamic Tilt Dot in TILT / CALIBRATION Crosshair Box [X: 30..112, Y: 146..224]
+        if (y >= 139 && y <= 224 && x >= 40 && x <= 130) {
+            int dx = x - imu_dot_x;
+            int dy = y - imu_dot_y;
+            int dist_sq = dx * dx + dy * dy;
+            if (dist_sq <= 16) {
+                return (dist_sq >= 10) ? COLOR_DOT_BORDER : COLOR_JOYSTICK;
+            }
+        }
+
+        // B. PWM (%) Value in Top-Left SPEED MODE Card (Moved down by 5px to Y=58)
+        int spd_y0 = 63; 
+
+        if (y >= spd_y0 && y < spd_y0 + 7 && x >= spd_x0 && x < spd_x0 + (spd_len * 6)) {
+            int char_idx = (x - spd_x0) / 6;
+            int char_x0 = spd_x0 + char_idx * 6;
+            char c = speed_str[char_idx];
+            if (font5x7_get_pixel(c, char_x0, spd_y0, x, y)) {
+                return COLOR_TEXT_CYAN;
+            }
+        }
+
+        // C. Start / Stop Button (Narrower width: X [122 to 218], Y [46 to 78])
+        if (x >= 126 && x <= 221 && y >= 40 && y <= 70) {
+            // Text: "RUNNING" vs "STOPPED"
+            const char *label = imu_running ? "RUNNING" : "STOPPED";
+            int label_len = strlen(label);
+            int text_x0 = 170 - (label_len * 6) / 2;
+            int text_y0 = 52;
+            if (y >= text_y0 && y < text_y0 + 7 && x >= text_x0 && x < text_x0 + (label_len * 6)) {
+                int char_idx = (x - text_x0) / 6;
+                int char_x0 = text_x0 + char_idx * 6;
+                char c = label[char_idx];
+                if (font5x7_get_pixel(c, char_x0, text_y0, x, y)) {
+                    return imu_running ? SWAP16(0x07E0) : SWAP16(0xF800);
+                }
+            }
+
+            // Icon: Play Arrow ▶ vs Stop Square ■ (Centered at X=138, Y=62)
+            if (imu_running) {
+                if (x >= 134 && x <= 140 && y >= 51 && y <= 59) {
+                    int dy = (y >= 55) ? (y - 55) : (55 - y);
+                    if ((x - 134) <= (4 - dy)) {
+                        return SWAP16(0x07E0);
+                    }
+                }
+            } else {
+                if (x >= 134 && x <= 140 && y >= 52 && y <= 58) {
+                    return SWAP16(0xF800);
+                }
+            }
+
+            // Border vs Background Fill
+            bool is_border = (x == 126 || x == 221 || y == 40 || y == 70 ||
+                              x == 127 || x == 220 || y == 41 || y == 69);
+            if (imu_running) {
+                return is_border ? SWAP16(0x07E0) : SWAP16(0x01E0);
+            } else {
+                return is_border ? SWAP16(0xF800) : SWAP16(0x3800);
+            }
+        }
+
+        // D. STATUS Box (Right of crosshair: Box Center X: 172, Y: 153)
+        const char *status_str = imu_running ? "ARMED" : "IDLE";
+        int stat_len = strlen(status_str);
+        int stat_x0 = 186 - (stat_len * 6) / 2; //was 172
+        int stat_y0 = 154;
+        if (y >= stat_y0 && y < stat_y0 + 7 && x >= stat_x0 && x < stat_x0 + (stat_len * 6)) {
+            int char_idx = (x - stat_x0) / 6;
+            int char_x0 = stat_x0 + char_idx * 6;
+            char c = status_str[char_idx];
+            if (font5x7_get_pixel(c, char_x0, stat_y0, x, y)) {
+                return imu_running ? SWAP16(0x07E0) : COLOR_TEXT_CYAN;
+            }
+        }
+
+        // E. Pitch (°) Value inside Pitch Box (Box Center X: 196, Y: 199)
+        int pitch_y0 = 217; //shifted down 7 pixels
+        if (y >= pitch_y0 && y < pitch_y0 + 7 && x >= pitch_x0 && x < pitch_x0 + (pitch_len * 6)) {
+            int char_idx = (x - pitch_x0) / 6;
+            int char_x0 = pitch_x0 + char_idx * 6;
+            char c = pitch_str[char_idx];
+            if (font5x7_get_pixel(c, char_x0, pitch_y0, x, y)) {
+                return COLOR_TEXT_CYAN;
+            }
+        }
+
+        // F. Roll (°) Value inside Roll Box (Box Center X: 196, Y: 223)
+        int roll_y0 = 237;
+        if (y >= roll_y0 && y < roll_y0 + 7 && x >= roll_x0 && x < roll_x0 + (roll_len * 6)) {
+            int char_idx = (x - roll_x0) / 6;
+            int char_x0 = roll_x0 + char_idx * 6;
+            char c = roll_str[char_idx];
+            if (font5x7_get_pixel(c, char_x0, roll_y0, x, y)) {
+                return COLOR_TEXT_CYAN;
             }
         }
 

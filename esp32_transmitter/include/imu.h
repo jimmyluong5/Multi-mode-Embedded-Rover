@@ -14,6 +14,10 @@ void imu_write_reg(uint8_t reg, uint8_t val);
 void imu_read_raw(int16_t *gx, int16_t *gy, int16_t *gz,
                 int16_t *ax, int16_t *ay, int16_t *az);
 void imu_process_tilt(int16_t raw_ax, int16_t raw_ay, int16_t *out_x, int16_t *out_y);
+void imu_get_screen_coords(int *out_x, int *out_y);
+void imu_get_tilt_deg(int *pitch_deg, int *roll_deg);
+
+extern bool imu_running;
 
 //we just need to attach the imu to the spi bus by doing 
 //spi_bus_add_device(spi number, &var, &spi)

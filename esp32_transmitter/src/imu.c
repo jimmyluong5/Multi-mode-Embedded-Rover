@@ -150,7 +150,14 @@ void imu_read_raw(int16_t *gx, int16_t *gy, int16_t *gz, int16_t *ax, int16_t *a
 }
 
 // Deadband threshold: ~7 degrees tilt (~1000 counts on +/-4g range)
-#define IMU_DEADBAND 1000
+#define IMU_DEADBAND    1000
+#define GRID_CENTER_X   85
+#define GRID_CENTER_Y   181
+#define GRID_RADIUS_X   42
+#define GRID_RADIUS_Y   39
+
+static volatile int16_t s_latest_tilt_x = 0;
+static volatile int16_t s_latest_tilt_y = 0;
 
 void imu_process_tilt(int16_t raw_ax, int16_t raw_ay, int16_t *out_x, int16_t *out_y) {
     // 1. Orient directions:
@@ -159,19 +166,51 @@ void imu_process_tilt(int16_t raw_ax, int16_t raw_ay, int16_t *out_x, int16_t *o
     int16_t mapped_x = -raw_ax;
     int16_t mapped_y = -raw_ay;
 
+    s_latest_tilt_x = mapped_x;
+    s_latest_tilt_y = mapped_y;
+    
     // 2. Deadband filter for X (Steering)
     if (abs(mapped_x) < IMU_DEADBAND) {
         *out_x = 0; // Lock to neutral zero
-    } else {
+    } 
+    
+    else {
         *out_x = mapped_x;
     }
 
     // 3. Deadband filter for Y (Throttle)
     if (abs(mapped_y) < IMU_DEADBAND) {
         *out_y = 0; // Lock to neutral zero
-    } else {
+    } 
+
+    else {
         *out_y = mapped_y;
     }
+
+    
+}
+
+void imu_get_screen_coords(int *out_x, int *out_y) {
+    int16_t tilt_x = s_latest_tilt_x;
+    int16_t tilt_y = s_latest_tilt_y;
+
+    // Max tilt range (~35 degrees tilt = ~4500 counts)
+    int pixel_x = GRID_CENTER_X + ((int)tilt_x * GRID_RADIUS_X) / 4500;
+    int pixel_y = GRID_CENTER_Y - ((int)tilt_y * GRID_RADIUS_Y) / 4500; // Invert Y so tilt forward moves dot up
+
+    // Clamp inside the grid box boundary
+    if (pixel_x < GRID_CENTER_X - GRID_RADIUS_X) pixel_x = GRID_CENTER_X - GRID_RADIUS_X;
+    if (pixel_x > GRID_CENTER_X + GRID_RADIUS_X) pixel_x = GRID_CENTER_X + GRID_RADIUS_X;
+    if (pixel_y < GRID_CENTER_Y - GRID_RADIUS_Y) pixel_y = GRID_CENTER_Y - GRID_RADIUS_Y;
+    if (pixel_y > GRID_CENTER_Y + GRID_RADIUS_Y) pixel_y = GRID_CENTER_Y + GRID_RADIUS_Y;
+
+    if (out_x) *out_x = pixel_x;
+    if (out_y) *out_y = pixel_y;
+}
+
+void imu_get_tilt_deg(int *pitch_deg, int *roll_deg) {
+    if (pitch_deg) *pitch_deg = ((int)s_latest_tilt_y * 90) / 8192;
+    if (roll_deg)  *roll_deg  = ((int)s_latest_tilt_x * 90) / 8192;
 }
 
 

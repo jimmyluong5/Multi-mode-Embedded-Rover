@@ -169,8 +169,19 @@ void app_main(void) {
             packet.speed = current_speed;
         } 
         else if (current_page == PAGE_IMU) {
-            packet.mode = IMU_MODE;
-            packet.speed = current_speed;
+            extern bool imu_running;
+            packet.button_data = 0;
+            packet.joystick_x = 2000;
+            packet.joystick_y = 2000;
+            if (imu_running) {
+                packet.mode = IMU_MODE;
+                packet.speed = current_speed;
+            } else {
+                packet.mode = MENU_MODE; // Stay stationary when stopped
+                packet.speed = 0;
+                packet.accel_x = 0;
+                packet.accel_y = 0;
+            }
         }
 
         // Always beep the speaker on real physical button presses (even in menu/auto)

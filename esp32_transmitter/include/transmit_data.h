@@ -17,7 +17,6 @@ extern uint8_t current_speed;
 typedef struct __attribute__((packed)) {     
     uint8_t button_data;
     uint8_t speed;
-    //uint16_t sequence;
     uint16_t joystick_x;
     uint16_t joystick_y;
     int16_t accel_x;

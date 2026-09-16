@@ -38,6 +38,7 @@ uint8_t current_speed = 128; // default 50% speed
 int page_length = PAGE_MAX_COUNT -1;
 int mode_length = TOTAL_MODES-1;
 bool auto_running = false; //initialize the robot to not move in the beginning.
+bool imu_running = false;  //initialize IMU mode to not move in the beginning.
 
 // Array for the GPIO pins to loop through and read
 
@@ -129,6 +130,8 @@ void process_arrow_keys(data_packet_t *packet) {
                         ESP_LOGI(TAG, "Entering Auto Mode Dashboard");
                         break;
                     case IMU_MODE:
+                        current_speed = 128; //initialize the speed for the robot.
+                        imu_running = false; //ensure robot doesn't start moving on its own
                         current_page = PAGE_IMU;
                         ESP_LOGI(TAG, "Entering IMU Mode Dashboard");
                         break; //escapes the current switch or loop, cpu continues running.
@@ -275,10 +278,33 @@ void process_arrow_keys(data_packet_t *packet) {
 
         case PAGE_IMU:
             if (clicked_left) {
+                imu_running = false;
                 current_page = PAGE_MENU;
                 active_mode = MENU_MODE;
                 packet->mode = active_mode;
                 ESP_LOGI(TAG, "Returning back to Menu Page");
+            }
+            else if (clicked_center) {
+                // Toggle running vs stopped state
+                imu_running = !imu_running;
+                speaker_pattern(1, 40, 0); // Beep speaker on toggle
+                ESP_LOGI(TAG, "IMU Mode State Toggled: %s", imu_running ? "RUNNING" : "STOPPED");
+            }
+            else if (clicked_up) {
+                // Increase PWM speed limit
+                if (current_speed <= 255 - 13) {
+                    current_speed += 13;
+                } else {
+                    current_speed = 255;
+                }
+            }
+            else if (clicked_down) {
+                // Decrease PWM speed limit
+                if (current_speed >= 13) {
+                    current_speed -= 13;
+                } else {
+                    current_speed = 0;
+                }
             }
             break;
        
