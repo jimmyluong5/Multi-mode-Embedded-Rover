@@ -10,6 +10,7 @@ typedef enum {
   robot_left,
   robot_right,
   robot_fault,
+  robot_imu,
   robot_auto, 
   robot_manual,
 } RobotState;

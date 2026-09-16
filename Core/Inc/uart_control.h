@@ -23,11 +23,6 @@ typedef struct __attribute__((packed)) {
     uint8_t mode; //eventually it'll contain more modes.
 } data_packet_t;
 
-
-
-
-
-
 typedef struct __attribute__((packed)) {
     float   actualspeed;
     uint8_t speedSetting;

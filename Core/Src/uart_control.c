@@ -21,6 +21,10 @@ static uint8_t current_servo_angle = 90;
 extern UART_HandleTypeDef huart1; // USART1: ESP32 Receiver (PA10 RX / PA9 TX)
 extern UART_HandleTypeDef huart2; // LPUART1: PC PuTTY Terminal (PA2 TX / PA3 RX)
 extern SPI_HandleTypeDef hspi1;
+static uint16_t min[8];
+static uint16_t max[8];
+static uint16_t filtered_adc[8];
+robot_status_t robot_status;  
 
 static uint32_t last_command_time = 0;
 
@@ -32,12 +36,6 @@ static bool first_print = true;
 
 // flag for the control mode
 static UART_ControlMode current_mode = UART_MODE_MENU;
-
-// declare max and min variables later to calculate the max and min of each
-// channel.
-static uint16_t min[8];
-static uint16_t max[8];
-static uint16_t filtered_adc[8];
 
 
 static void UART_SendMessage(const char *message);
@@ -301,6 +299,63 @@ void UART_CONTROL_update(void) {
           //we call the line following function
           Robot_LineFollow_Update();
         }
+        else if (packet.mode == IMU_MODE) {
+          Robot_SetState(robot_imu);
+          
+         
+          //throttle variables,
+          //so we read the raw tilt reading from the accelerometer, 
+          //which is between -4500 and 4500
+          
+          //we calculate throttle ratio by dividing packet.accel_y/4500.0 to get a number
+          //between -1.0 and 1.0 so 1.0 is fully turning the controller in the +y
+
+          //packet.speed we just increment based on our buttons
+
+          //motor pwm = throttle_ratio * (float)packet.speed
+          //if packet.speed = 60%
+          
+          float throttle_ratio = (float)packet.accel_y / 4500.0f;
+          
+          //clamp the throttle ratio between 1.0 and -1.0, like maps the y max and min of the accelerometer.
+          if (throttle_ratio > 1.0f) {
+            throttle_ratio = 1.0f;
+          }
+          else if (throttle_ratio < -1.0f) {
+            throttle_ratio = -1.0f;
+          }
+
+          //this is the gas padel, scales the speed percentage by the amount of tilt
+          int16_t motor_pwm = (int16_t)(throttle_ratio * (float)packet.speed);
+
+          //this is the steering part
+          float steer_ratio = (float)packet.accel_x / 4500.0f;
+          //clamp the steer ratio, just translates the servo angles like maps the max and min
+          //degree of the servo.
+          if (steer_ratio > 1.0f) {
+            steer_ratio = 1.0f;
+          }
+          else if (steer_ratio < -1.0f) {
+            steer_ratio = -1.0f;
+          }
+
+          //mechanical clamp for the servo
+          int16_t servo_angle = SERVO_ANGLE_CENTER + (int16_t)(steer_ratio * 35.0f);
+
+          //safety clamp for the servo
+          if (servo_angle < 55) {
+            servo_angle = 55;
+          }
+          else if (servo_angle > 125) {
+            servo_angle = 125;
+          }
+
+          //then we mov the motors
+          Motor_Left_SetSpeed(motor_pwm);
+          Motor_Right_SetSpeed(motor_pwm);
+          Servo_SetAngle((uint8_t)servo_angle);
+        }
+
         else {
           packet.mode = MENU_MODE;
           Robot_SetState(robot_idle);
@@ -312,6 +367,10 @@ void UART_CONTROL_update(void) {
       }
     }
   }
+
+
+
+
 
   // -------------------------------------------------------------------------
   // 2. Process incoming keyboard inputs from PuTTY on huart2 (LPUART1 / USB)
@@ -835,8 +894,7 @@ void UART_CONTROL_update(void) {
       for (int i = 0; i < 8; i++) {
         min[i] = 4095; // set each channel to the value of 3.3V which is a white
                        // surface.
-        max[i] =
-            0; // set each channel to the value of 0V which is a black surface.
+        max[i] = 0; // set each channel to the value of 0V which is a black surface.
         filtered_adc[i] = 0;
       }
     }
@@ -865,6 +923,10 @@ void UART_CONTROL_update(void) {
         break;
       case robot_auto:
         state_str = "AUTO";
+        break;
+      case robot_manual:
+        break;
+      case robot_imu:
         break;
       }
       int percent = (robot_speed * 100) / 999;
@@ -1000,7 +1062,6 @@ static float    g_jitter_ms        = 2.1f;
 static uint16_t g_missed_deadlines = 0;
 static uint32_t last_loop_start_us = 0;
 static float    jitter_filter_us   = 2100.0f;
-robot_status_t  robot_status       = {0};
 
 // Call this at the START of your control loop
 void Telemetry_Loop_Start(void) {
@@ -1054,7 +1115,6 @@ void UART_Send_Telemetry(void) {
   robot_status_t status = {0};
     status.speedSetting     = (robot_speed * 100) / 999;
     status.direction        = (uint8_t)Robot_GetState();
-    status.lineSensors      = robot_status.lineSensors;
     status.emergencyStop    = (Robot_GetState() == robot_fault) ? 1 : 0;
 
     // Live STM32 Real-Time Superloop Performance
@@ -1063,6 +1123,7 @@ void UART_Send_Telemetry(void) {
     status.latencyMs        = g_latency_ms;
     status.jitterMs         = g_jitter_ms;
     status.missedDeadlines  = g_missed_deadlines;
+    status.lineSensors = robot_status.lineSensors;
 
     // Transmit over UART (PA9/PA10)
     uint8_t marker = 0xAA;

@@ -6,7 +6,7 @@
 
 // Default motor speed / PWM duty cycle (0 to 999)
 // 0 = 0% PWM, 500 = 50% PWM, 999 = 100% PWM
-#define MOTOR_DEFAULT_SPEED 999
+#define MOTOR_DEFAULT_SPEED 500
 
 static RobotState current_state = robot_idle;
 volatile int16_t robot_speed = MOTOR_DEFAULT_SPEED;
@@ -59,6 +59,9 @@ void Robot_SetState(RobotState new_state) {
 
   case robot_auto:
     break; //do nothing because the uart will do it for us.
+
+  case robot_imu:
+    break;
 
   default:
     Motor_Stop();

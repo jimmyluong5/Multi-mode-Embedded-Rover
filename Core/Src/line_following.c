@@ -109,7 +109,7 @@ void Robot_LineFollow_Update(void) {
     }
   }
 
-  // If rover is not in auto mode, exit early (telemetry is updated above)
+
   if (Robot_GetState() != robot_auto) {
     return;
   }
