@@ -1,10 +1,12 @@
 # Multi-mode Rover
 <img width="480" height="853" alt="line_following_github" src="https://github.com/user-attachments/assets/8277d7d8-333a-4ad6-8d29-b165df40b6e0" />
 
+Rough Prototype of Line Following in mid-July
 
 
 
-An autonomous line-following rover built around the **STM32G431KB**, using an 8-channel reflectance sensor array for navigation, UART for diagnostics and control, and ESP-NOW for wireless communication.
+An multi-mode rover built around the **STM32G431KB**, using an 8-channel reflectance sensor array for autonomous line following, LSM6DS3 IMU for tilt control UART for diagnostics and control, and ESP-NOW for wireless communication.
+
 
 The project began as a basic motor-control prototype and has gradually evolved into a full rover platform with autonomous navigation, sensor monitoring, multiple operating modes, and wireless control.
 <p align="center">
