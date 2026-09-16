@@ -315,7 +315,7 @@ void UART_CONTROL_update(void) {
           //motor pwm = throttle_ratio * (float)packet.speed
           //if packet.speed = 60%
           
-          float throttle_ratio = (float)packet.accel_y / 4500.0f;
+          float throttle_ratio = (float)packet.accel_y / 3000.0f;
           
           //clamp the throttle ratio between 1.0 and -1.0, like maps the y max and min of the accelerometer.
           if (throttle_ratio > 1.0f) {
@@ -326,10 +326,10 @@ void UART_CONTROL_update(void) {
           }
 
           //this is the gas padel, scales the speed percentage by the amount of tilt
-          int16_t motor_pwm = (int16_t)(throttle_ratio * (float)packet.speed);
+          int16_t motor_pwm = (int16_t)(throttle_ratio * (float)packet.speed * 10.0f);
 
           //this is the steering part
-          float steer_ratio = (float)packet.accel_x / 4500.0f;
+          float steer_ratio = (float)packet.accel_x / 3000.0f;
           //clamp the steer ratio, just translates the servo angles like maps the max and min
           //degree of the servo.
           if (steer_ratio > 1.0f) {
@@ -350,7 +350,7 @@ void UART_CONTROL_update(void) {
             servo_angle = 125;
           }
 
-          //then we mov the motors
+          //then we move the motors
           Motor_Left_SetSpeed(motor_pwm);
           Motor_Right_SetSpeed(motor_pwm);
           Servo_SetAngle((uint8_t)servo_angle);
