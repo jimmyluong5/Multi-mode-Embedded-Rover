@@ -432,7 +432,10 @@ The manual driving implementation provides responsive, proportional throttle and
 
 
 
-https://github.com/user-attachments/assets/510c7fbb-fd98-4aba-af33-ecc1c66d9171
+
+
+https://github.com/user-attachments/assets/3c32494a-2592-41dd-a6e3-7c65f42f0c67
+
 
 
 
