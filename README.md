@@ -462,6 +462,14 @@ When switching into **Autonomous Mode**, the controller renders an industrial vi
 
 ### 17. Real-Time IMU Gesture & Tilt Control Mode (`PAGE_IMU`)
 
+
+
+
+https://github.com/user-attachments/assets/bebed1e2-1b77-4877-b2ca-f1f811145993
+
+
+
+
 Building upon manual joystick and autonomous line-following modes, this stage introduced a hands-free **IMU Gesture & Tilt Control Mode**, integrating a 6-DoF **LSM6DS3** accelerometer and gyroscope on the handheld transmitter to steer and throttle the rover via wrist orientation:
 
 #### 1. Handheld UI & Calibrated Crosshair Attitude HUD
