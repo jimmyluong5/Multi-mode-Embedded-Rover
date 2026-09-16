@@ -460,6 +460,23 @@ When switching into **Autonomous Mode**, the controller renders an industrial vi
 * **Trajectory Memory & Lost-Line Recovery**: Maintains historical sensor states (`prev_channel`) so that if line continuity is lost, the rover references its last departure trajectory vector to steer back onto the track automatically.
 * **Intersection Pass-Through**: Initiates a timed straight-line pass-through when 5+ sensors trigger simultaneously, navigating warehouse grid cross-junctions without false turns.
 
+### 17. Real-Time IMU Gesture & Tilt Control Mode (`PAGE_IMU`)
+
+Building upon manual joystick and autonomous line-following modes, this stage introduced a hands-free **IMU Gesture & Tilt Control Mode**, integrating a 6-DoF **LSM6DS3** accelerometer and gyroscope on the handheld transmitter to steer and throttle the rover via wrist orientation:
+
+#### 1. Handheld UI & Calibrated Crosshair Attitude HUD
+When switching to **IMU Mode**, the 3.2" TFT LCD renders a dedicated attitude HUD powered by the double-buffered SPI DMA graphics engine (~35–40 FPS):
+* **Dynamic 2D Tilt Reticle**: Real-time crosshair dot tracks pitch and roll within a calibrated boundary box (`X [40..130]`, `Y [139..224]`), visually indicating hand orientation relative to the neutral center `(85, 181)`.
+* **Attitude Telemetry**: Real-time calculated **Pitch (°)** and **Roll (°)** angle values displayed in dedicated diagnostic readouts on the right.
+* **Speed Mode Throttle Ceiling**: Displays current PWM base speed limit (`0%` to `100%`), adjustable on the fly in 5% increments via the D-pad buttons.
+* **Safety Run/Stop Interlock**: Center button toggles between **RUNNING** (Green) and **STOPPED** (Red), locking motor and steering outputs to neutral zero when disarmed, in menus, or within the central ~7° deadband.
+* **Optimized Graphics Pipeline**: String conversions and coordinate layouts are pre-calculated once per frame at `(0, 0)` rather than per-pixel, eliminating ~230,000 redundant `snprintf()` calls per second and maximizing display responsiveness.
+
+#### 2. Closed-Loop Kinematics & Ackermann Steering Mapping (STM32)
+The STM32 parses the incoming 40 Hz IMU telemetry packets (`packet.accel_x` and `packet.accel_y`) and maps wrist orientation directly to vehicle actuation:
+* **Proportional Throttle (Pitch / Accel Y)**: Forward/backward tilt is normalized (±3000 counts) and scaled against the active speed ceiling into hardware timer PWM (`0` to `999` counts on `TIM1`/`TIM17`), providing progressive gas-pedal acceleration.
+* **Proportional Steering (Roll / Accel X)**: Lateral controller tilt is normalized (±3000 counts) and mapped to the front suspension steering servo (`SERVO_ANGLE_CENTER ± 35°`, clamped between `55°` and `125°`), pivoting the front wheels in direct proportion to wrist roll while the rear motors drive through the turn.
+
 ## Hardware Interconnect (Receiver <-> STM32):
 * **ESP32-S3 Pin 42 (UART1 TX)** --> **STM32 PA10 (USART1 RX / D1)** @ 115,200 baud
 * **ESP32-S3 Pin 2 (UART1 RX)** <-- **STM32 PA9 (USART1 TX / D0)** @ 115,200 baud
@@ -530,14 +547,17 @@ To benchmark control loop determinism (comparing FreeRTOS preemptive multitaskin
 #### 5. Wireless Communication Protocol (`ESP-NOW`) & Safety Watchdog
 Control packets (`data_packet_t`) are packed into a compact binary structure and transmitted as 2.4 GHz peer-to-peer unicast packets to the receiver ESP32 on the rover:
 ```c
+
 typedef struct __attribute__((packed)) {
     uint8_t  button_data;  // 5-bit tactile button mask
-    uint8_t  speed;        // Commanded throttle (0–255)
-    uint16_t joystick_x;   // Filtered X analog deflection
-    uint16_t joystick_y;   // Filtered Y analog deflection
-    uint8_t  imu_x;        // Reserved for IMU tilt control
-    uint8_t  imu_y;        // Reserved for IMU tilt control
-    uint8_t  mode;         // Active operating mode
+    uint8_t  speed;        // Commanded speed percentage (0–100%)
+    uint16_t joystick_x;   // Filtered analog X deflection
+    uint16_t joystick_y;   // Filtered analog Y deflection
+    int16_t  accel_x;      // Filtered IMU X tilt (Roll / Steering)
+    int16_t  accel_y;      // Filtered IMU Y tilt (Pitch / Throttle)
+    int16_t  accel_z;      // IMU Z acceleration
+    int16_t  gyro_z;       // IMU Z gyro rate
+    uint8_t  mode;         // Active operating mode (Manual, Auto, IMU)
 } data_packet_t;
 ```
 
@@ -606,9 +626,10 @@ Phase 3: Time-of-Flight (ToF) Collision Detection & Auto-Braking
 - [x] Real-time proportional manual joystick driving with differential throttle mixing
 - [x] 5-second inactivity fail-safe timeout watchdog with multi-tone audio alarm
 - [x] Closed-loop STM32 DWT performance metrics & link telemetry transmission over ESP-NOW back to handheld transmitter LCD (20 Hz)
+- [x] 6-DoF IMU gesture tilt control (LSM6DS3) with proportional throttle and Ackermann servo steering
 
 ### In Progress
-- [ ] IMU sensor integration & dynamic heading stabilization (LSM6DS3 6-DoF accelerometer + gyroscope)
+- [ ] IMU dynamic heading stabilization & closed-loop straight-line yaw compensation
 
 ### Planned
 - [ ] IMU-based closed-loop straight-line heading stabilization & tilt compensation
