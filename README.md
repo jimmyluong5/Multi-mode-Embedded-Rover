@@ -490,6 +490,52 @@ The STM32 parses the incoming 40 Hz IMU telemetry packets (`packet.accel_x` and 
 * **Proportional Throttle (Pitch / Accel Y)**: Forward/backward tilt is normalized (±3000 counts) and scaled against the active speed ceiling into hardware timer PWM (`0` to `999` counts on `TIM1`/`TIM17`), providing progressive gas-pedal acceleration.
 * **Proportional Steering (Roll / Accel X)**: Lateral controller tilt is normalized (±3000 counts) and mapped to the front suspension steering servo (`SERVO_ANGLE_CENTER ± 35°`, clamped between `55°` and `125°`), pivoting the front wheels in direct proportion to wrist roll while the rear motors drive through the turn.
 
+### 17. Vision & ToF Obstacle Avoidance Subsystem (FireBeetle 2 ESP32-S3 Node)
+
+To expand the rover beyond static track navigation into intelligent interactive autonomy, this phase introduces a third microcontroller node: the **DFRobot FireBeetle 2 ESP32-S3 (N16R8)**. Mounted directly to the front of the rover chassis, this dedicated AIoT node integrates an **OV2640 DVP Camera** and an **ST VL53L1X Time-of-Flight (ToF)** laser ranging sensor to power dynamic obstacle braking and an upcoming autonomous **"Follow-Me"** mode.
+
+```text
+  [ ST VL53L1X ToF ] ──(I2C @ 400kHz)──┐
+                                       ├──► [ FireBeetle 2 ESP32-S3 ]
+  [ OV2640 Camera ]  ──(DVP 8-bit bus)─┘         (Camera & Range Node)
+                                                         │
+                                                  (ESP-NOW 30 Hz)
+                                                         ▼
+                                                [ ESP32-S3 Receiver ]
+                                                         │
+                                                    (UART 115.2k)
+                                                         ▼
+                                                [ STM32G431KB Brain ]
+                                                (Kinematics & Motors)
+```
+
+#### 1. Hardware Architecture & Memory Pipeline
+* **Microcontroller**: DFRobot FireBeetle 2 ESP32-S3 featuring dual 240 MHz Xtensa LX7 cores, 16MB Quad-SPI Flash, and **8MB Octal PSRAM** (`OPI`).
+* **High-Bandwidth Octal PSRAM Enablement**: Configured native ESP-IDF build flags (`-DBOARD_HAS_PSRAM`, `-DCONFIG_SPIRAM_MODE_OCT=1`) to allocate high-resolution camera DMA frame buffers without exhausting internal SRAM.
+* **Component-Managed Driver Architecture**: Configured via the pure ESP-IDF Component Registry (`idf_component.yml`), eliminating bulky Arduino runtime dependencies:
+  * `espressif/esp32-camera (^2.1.7)`: Hardware-accelerated 8-bit DVP camera driver.
+  * `espressif/esp_jpeg (^1.3.1)`: `TJpgDec` decoder for rapid frame decompression in computer vision preprocessing.
+  * `grrtzm/vl53l1x_library (^0.3.1)`: Pure C driver leveraging ESP-IDF 5.x `i2c_master` bus architecture.
+
+#### 2. Time-of-Flight (ToF) Distance Sensing Implementation
+* **ST VL53L1X Laser Ranger**: Emits invisible 940 nm VCSEL laser pulses to compute millimeter-accurate distances independent of target surface color or reflectance.
+* **Bus Multiplexing**: Interfaced over `I2C_NUM_0` on **GPIO 1 (SDA)** and **GPIO 2 (SCL)** at 400 kHz with internal pull-ups, coexisting cleanly on the physical header with the camera's SCCB configuration bus without address collision (`0x29` 7-bit ToF address vs `0x30` camera address).
+* **Calibrated 33 ms (~30 Hz) Long Distance Mode**: Configured the macro timing and inter-measurement budget to **33 ms**, providing a 3× faster reaction time than standard 10 Hz sensors while maintaining dependable 2–3 meter obstacle detection under ambient room lighting.
+* **Data Integrity Filtering**: Implemented range-status validation (`r.status == 0`) with timeout protections, discarding optical ambient noise and returning `0xFFFF` on invalid frames.
+
+#### 3. Low-Latency ESP-NOW Wireless Bridge
+* **Station Mode RF Pipeline**: Initialized NVS and the Wi-Fi radio stack in station mode (`WIFI_MODE_STA`) locked to Channel 1, establishing an ad-hoc, sub-2ms point-to-point wireless link directly to the rover's on-board receiver (`AC:27:6E:A2:87:5C`).
+* **Binary Telemetry Packet (`0xBB + tof_packet`)**: Packets are formatted with an identification sync byte (`0xBB`) to differentiate range telemetry from the controller’s joystick packets (`0xAA`), streaming real-time distance and sensor health at ~30 Hz.
+
+#### 4. Architecture & Roadmap Towards the "Follow-Me" Feature
+The FireBeetle node forms the sensory foundation for the rover's upcoming intelligent tracking modes:
+1. **Safety Interlock & Active Emergency Braking**: Distance packets forwarded to the STM32 via the receiver's UART pipeline act as a hardware safety envelope: if distance drops below `< 200 mm`, the STM32 immediately overrides active throttle to clamp motor PWM to 0.
+2. **Visual Target Centroid Acquisition**: Using the OV2640 camera, the ESP32-S3 will run lightweight color-blob and centroid tracking to calculate the target's horizontal pixel displacement (`target_x_offset`).
+3. **Dual-Loop Follow-Me Control**:
+   * **Distance Regulation (Longitudinal PID)**: The ToF reading feeds a distance PID controller on the STM32 to modulate rear motor throttle, maintaining a steady 400–500 mm gap from a walking user or moving target.
+   * **Steering Alignment (Lateral PID)**: The camera's horizontal offset feeds the Ackermann front servo, steering the wheels left or right to keep the target centered in the field of view.
+
+
 ## Hardware Interconnect (Receiver <-> STM32):
 * **ESP32-S3 Pin 42 (UART1 TX)** --> **STM32 PA10 (USART1 RX / D1)** @ 115,200 baud
 * **ESP32-S3 Pin 2 (UART1 RX)** <-- **STM32 PA9 (USART1 TX / D0)** @ 115,200 baud

@@ -12,6 +12,7 @@
 
 static const char *TAG = "RECEIVER_SETUP";
 
+//this is the transmitter mac address.
 uint8_t transmitter_mac[ESP_NOW_ETH_ALEN] = {0xAC, 0x27, 0x6E, 0xA1, 0x9F, 0x34};
 
 bool g_transmitter_paired = false;
@@ -28,7 +29,8 @@ static void OnDataRecv(const esp_now_recv_info_t *esp_now_info, const uint8_t *d
                 g_transmitter_paired = true;
                 ESP_LOGI(TAG, "Paired with Transmitter MAC: " MACSTR, MAC2STR(transmitter_mac));
             }
-        } else {
+        } 
+        else {
             g_transmitter_paired = true;
         }
     }

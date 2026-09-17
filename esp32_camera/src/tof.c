@@ -59,8 +59,10 @@ esp_err_t tof_init(void) {
     }
 
     // 
-    ESP_ERROR_CHECK(vl53l1x_set_macro_timing(&sensor, 1));
-    ESP_ERROR_CHECK(vl53l1x_set_intermeasurement_ms(&sensor, 50)); //50 ms, or 20Hz
+   
+    ESP_ERROR_CHECK(vl53l1x_set_macro_timing(&sensor, 33));        // 33 ms integration window
+    ESP_ERROR_CHECK(vl53l1x_set_intermeasurement_ms(&sensor, 33)); // 33 ms period (~30 Hz)
+
 
     ESP_ERROR_CHECK(vl53l1x_start(&sensor));
     return ESP_OK;
