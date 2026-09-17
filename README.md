@@ -492,6 +492,14 @@ The STM32 parses the incoming 40 Hz IMU telemetry packets (`packet.accel_x` and 
 
 ### 17. Vision & ToF Obstacle Avoidance Subsystem (FireBeetle 2 ESP32-S3 Node)
 
+
+
+
+
+Uploading IMG_5575.MOV…
+
+
+
 To expand the rover beyond static track navigation into intelligent interactive autonomy, this phase introduces a third microcontroller node: the **DFRobot FireBeetle 2 ESP32-S3 (N16R8)**. Mounted directly to the front of the rover chassis, this dedicated AIoT node integrates an **OV2640 DVP Camera** and an **ST VL53L1X Time-of-Flight (ToF)** laser ranging sensor to power dynamic obstacle braking and an upcoming autonomous **"Follow-Me"** mode.
 
 ```text
