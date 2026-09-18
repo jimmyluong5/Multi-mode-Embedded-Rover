@@ -36,6 +36,15 @@ typedef struct __attribute__((packed)) {
     uint16_t missedDeadlines;
 } robot_status_t;
 
+typedef struct __attribute__((packed)) {       
+    uint8_t packet_type; //this will be 0xBB //distinguishes between transmitter packet
+    //and the packet from esp32 camera
+    uint16_t distance;
+    uint8_t status;
+}tof_packet_t;
+
+
+
 //everytime you want to add a new mode, just add it here.
 typedef enum {
   UART_MODE_MENU,

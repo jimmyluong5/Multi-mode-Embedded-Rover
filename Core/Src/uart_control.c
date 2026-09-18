@@ -17,6 +17,7 @@ static uint8_t current_servo_angle = 90;
 //static int16_t current_stepper_angle = 0; 
 // track current stepper angle starting at 0 deg.
 #define BLACK_THRESHOLD 2359 // 1.90V on 3.3V ADC
+#define TOF_MAX_DISTANCE 150
 
 extern UART_HandleTypeDef huart1; // USART1: ESP32 Receiver (PA10 RX / PA9 TX)
 extern UART_HandleTypeDef huart2; // LPUART1: PC PuTTY Terminal (PA2 TX / PA3 RX)
@@ -27,6 +28,10 @@ static uint16_t filtered_adc[8];
 robot_status_t robot_status;  
 
 static uint32_t last_command_time = 0;
+
+//flag for the tof
+static bool obstacle_flag = false;
+static uint16_t tof_distance = 0xFFFF; //random value, we will use in the tof part 
 
 // flag for sensor test
 static bool sensor_test_active = false;
@@ -251,6 +256,7 @@ void UART_CONTROL_update(void) {
   uint8_t esp_byte;
   if (HAL_UART_Receive(&huart1, &esp_byte, 1, 0) == HAL_OK) {
     if (esp_byte == 0xAA) {
+      
       data_packet_t packet;
       if (HAL_UART_Receive(&huart1, (uint8_t*)&packet, sizeof(data_packet_t), 20) == HAL_OK) {
         // Toggle LED2 instantly on valid packet arrival
@@ -279,13 +285,20 @@ void UART_CONTROL_update(void) {
         if (target_servo_angle < SERVO_ANGLE_MIN) target_servo_angle = SERVO_ANGLE_MIN;
         if (target_servo_angle > SERVO_ANGLE_MAX) target_servo_angle = SERVO_ANGLE_MAX;
 
+
+      
         if (current_mode == UART_MODE_STM32) {
           char packet_values[160];
           snprintf(packet_values, sizeof(packet_values), "[ESP32->STM32] JoyX:%4u | JoyY:%4u | Spd:%3u | Mode:%u | Btns:0x%02X -> PWM L:%+4d R:%+4d | Servo:%d deg\r\n",
                    packet.joystick_x, packet.joystick_y, packet.speed, packet.mode, packet.button_data, left_pwm, right_pwm, target_servo_angle);
           UART_SendMessage(packet_values);
         }
-
+        if (obstacle_flag == true && (left_pwm > 0 || right_pwm > 0) ) {
+          //turn off the wheels
+          left_pwm = 0;
+          right_pwm = 0;
+          Motor_Stop();
+        }
         if (packet.mode == MANUAL_MODE) {
           Robot_SetState(robot_manual);
           Motor_Left_SetSpeed(left_pwm);
@@ -327,7 +340,11 @@ void UART_CONTROL_update(void) {
 
           //this is the gas padel, scales the speed percentage by the amount of tilt
           int16_t motor_pwm = (int16_t)(throttle_ratio * (float)packet.speed * 10.0f);
-
+          if (obstacle_flag == true && motor_pwm > 0)  {
+            //set the motor_pwm to 0 then stop the motors
+            motor_pwm = 0;
+            Motor_Stop();
+          }
           //this is the steering part
           float steer_ratio = (float)packet.accel_x / 3000.0f;
           //clamp the steer ratio, just translates the servo angles like maps the max and min
@@ -364,6 +381,24 @@ void UART_CONTROL_update(void) {
         }
 
       
+      }
+    }
+
+    else if (esp_byte == 0xBB) {
+      //create the data packet for the esp32 camera
+      tof_packet_t tof;
+      if (HAL_UART_Receive(&huart1, (uint8_t*)&tof, sizeof(tof_packet_t), 20) == HAL_OK) {
+        //get the distance reading in the form of a 16 bit integet
+        tof_distance = tof.distance; //in mm
+        //if our distance is greater than 350, then we just stop the robot.
+        if (tof_distance < TOF_MAX_DISTANCE && tof_distance > 0 && tof.status == 0) {
+          obstacle_flag = true; //turn flag on
+          //just stop the motors
+          Motor_Stop();
+        }
+        else {
+          obstacle_flag = false;
+        }
       }
     }
   }
