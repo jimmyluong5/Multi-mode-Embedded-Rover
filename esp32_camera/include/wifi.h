@@ -9,13 +9,12 @@ typedef struct __attribute__((packed)) {
     //and the packet from esp32 camera
     uint16_t distance;
     uint8_t status;
-
-}tof_packet;
+}tof_packet_t;
 
 void init_esp_nvs(void);
 void init_wifi(void);
 void init_esp_now(void);
-esp_err_t send_tof_packet(const tof_packet * packet);
+esp_err_t send_tof_packet(tof_packet_t *packet);
 
 
 

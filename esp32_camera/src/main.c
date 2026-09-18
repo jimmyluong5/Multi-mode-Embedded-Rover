@@ -28,7 +28,7 @@ void app_main() {
     init_esp_now();
 
     //initialize the packet we finna send.
-    tof_packet packet;
+    tof_packet_t packet;
     packet.packet_type = 0xBB; 
     packet.status = 0;
 

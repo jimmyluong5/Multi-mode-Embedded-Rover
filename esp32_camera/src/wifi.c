@@ -13,7 +13,7 @@ static const char *TAG = "ESP32 - Camera";
 uint8_t receiver_mac[ESP_NOW_ETH_ALEN] = {0xAC, 0x27, 0x6E, 0xA2, 0x87, 0x5C};
 
 //initialize the tof packet
-tof_packet packet = {0};
+tof_packet_t packet = {0};
 
 //flag if we sent the packet correctly
 //bool sent_packet = false; //maybe later
@@ -45,11 +45,14 @@ static void OnDataRecv(const esp_now_recv_info_t *esp_now_info, const uint8_t *d
 }
 
 //function to send the data if we want to receive data
+/* 
 static void OnDataSent(const esp_now_send_info_t *tx_info, esp_now_send_status_t status) {
   if (tx_info == NULL)  {
     return;
   }
 }
+
+ */
 
 void init_esp_nvs(void) {
     esp_err_t ret = nvs_flash_init();
@@ -87,6 +90,6 @@ void init_esp_now(void) {
     }
 }
 
-esp_err_t send_tof_packet(const tof_packet *packet) { 
-    return esp_now_send(receiver_mac, (const uint8_t*)packet, sizeof(tof_packet));
+esp_err_t send_tof_packet(tof_packet_t *packet) { 
+    return esp_now_send(receiver_mac, (const uint8_t*)packet, sizeof(tof_packet_t));
 }
