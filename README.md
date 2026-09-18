@@ -499,7 +499,10 @@ The STM32 parses the incoming 40 Hz IMU telemetry packets (`packet.accel_x` and 
 
 
 
-https://github.com/user-attachments/assets/69861771-5a13-48ae-acd5-0565f65d0cbe
+
+https://github.com/user-attachments/assets/b8a65a7d-91a0-4f34-ae63-236313951bae
+
+
 
 
 
