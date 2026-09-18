@@ -9,7 +9,7 @@
 #include "vl53l1x.h"
 #include "tof.h"
 #include "wifi.h"
-
+#include "camera.h"
 static const char *TAG = "ESP32_Camera";
 
 void app_main() {
@@ -26,6 +26,21 @@ void app_main() {
     init_esp_nvs();
     init_wifi();
     init_esp_now();
+    
+
+    /*
+    if (init_camera() == ESP_OK) {
+        ESP_LOGI(TAG, "Camera Ready!");
+        //test picture capture
+        camera_fb_t* pic = camera_take_picture();
+        if (pic) {
+            camera_return_picture(pic);
+        }
+    }
+    else {
+        ESP_LOGE(TAG, "Camera failed - continuing with ToF sensor only");
+    }
+    */
 
     //initialize the packet we finna send.
     tof_packet_t packet;

@@ -7,9 +7,9 @@
 
 static const char *TAG = "example_ulp";
 
-#define I2C_PORT_NUM 0
-#define I2C_SCL_GPIO 2
-#define I2C_SDA_GPIO 1
+#define I2C_PORT_NUM 1
+#define I2C_SCL_GPIO 14
+#define I2C_SDA_GPIO 13
 #define I2C_SPEED_HZ 400000
 #define VL53L1X_ADDR_7BIT 0x29
 
