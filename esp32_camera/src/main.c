@@ -37,12 +37,13 @@ void app_main() {
         //get the tof reading
         uint16_t dist = tof_get_distance();
         //then if the distance is not all 1111s like 0xFFFF
+        
+        //load the distance into the packet
+        packet.distance = dist;
+        packet.status = (dist== 0xFFFF) ? 1:0;
+        send_tof_packet(&packet);
         if (dist != 0xFFFF) {
             ESP_LOGI(TAG, "Distance: %u mm ", dist);
-
-            //update only the changing distance value and sned
-            packet.distance = dist;
-            send_tof_packet(&packet);
         }
         vTaskDelay(pdMS_TO_TICKS(33)); //delay the cpu after by 50ms
     }
