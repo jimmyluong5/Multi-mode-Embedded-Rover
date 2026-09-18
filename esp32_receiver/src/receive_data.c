@@ -53,3 +53,11 @@ void send_packet_stm32(data_packet_t *packet) {
     uart_write_bytes(UART_NUM_1, (const char*)&marker, 1);
     uart_write_bytes(UART_NUM_1, (const char*)packet, sizeof(data_packet_t));
 }
+
+void send_tof_stm32(tof_packet_t *packet) {
+    //need to pack the marker
+    uint8_t marker = 0xBB;
+    uart_write_bytes(UART_NUM_1, (const char*)&marker, 1);
+    uart_write_bytes(UART_NUM_1, (const char*)packet, sizeof(tof_packet_t)); 
+
+}

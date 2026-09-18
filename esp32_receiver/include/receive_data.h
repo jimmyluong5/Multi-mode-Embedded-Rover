@@ -31,11 +31,22 @@ typedef struct __attribute__((packed)) {
     uint16_t missedDeadlines;
 } robot_status_t;
 
+
+//this is from the esp32 camera
+//we need to have the same data packet 
+typedef struct __attribute__((packed)) {       
+    uint8_t packet_type; //this will be 0xBB //distinguishes between transmitter packet
+    //and the packet from esp32 camera
+    uint16_t distance;
+    uint8_t status;
+}tof_packet_t;
+
+
 void receive_button_press(data_packet_t *packet);
 void init_pins(void);
 //void update_speed(data_packet_t* packet); not needed because we not updating speed at all 
 //or calculating the speed of the car because the data packet sends us information.
 
-
+void send_tof_stm32(tof_packet_t *packet);
 void send_packet_stm32(data_packet_t *packet);
 #endif

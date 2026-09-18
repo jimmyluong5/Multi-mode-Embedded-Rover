@@ -1,4 +1,4 @@
-﻿#include "setup.h"
+#include "setup.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_mac.h"
@@ -18,28 +18,23 @@ uint8_t transmitter_mac[ESP_NOW_ETH_ALEN] = {0xAC, 0x27, 0x6E, 0xA1, 0x9F, 0x34}
 bool g_transmitter_paired = false;
 
 static void OnDataRecv(const esp_now_recv_info_t *esp_now_info, const uint8_t *data, int data_len) {
-    if (!g_transmitter_paired && esp_now_info != NULL) {
-        memcpy(transmitter_mac, esp_now_info->src_addr, 6);
-        if (!esp_now_is_peer_exist(transmitter_mac)) {
-            esp_now_peer_info_t peer_info = {0};
-            memcpy(peer_info.peer_addr, transmitter_mac, 6);
-            peer_info.channel = 1;
-            peer_info.encrypt = false;
-            if (esp_now_add_peer(&peer_info) == ESP_OK) {
-                g_transmitter_paired = true;
-                ESP_LOGI(TAG, "Paired with Transmitter MAC: " MACSTR, MAC2STR(transmitter_mac));
-            }
-        } 
-        else {
-            g_transmitter_paired = true;
-        }
-    }
-
+    
+    //this is the transmitter data packet
     if (data_len == sizeof(data_packet_t)) { 
         data_packet_t packet;
         memcpy(&packet, data, sizeof(data_packet_t)); 
         receive_button_press(&packet);
     }
+    else if (data_len == sizeof(tof_packet_t) && data[0] == 0xBB) {
+        tof_packet_t tof;
+        memcpy(&tof, data, sizeof(tof_packet_t)); 
+        // Print distance straight to PuTTY
+        ESP_LOGI("TOF_RECV", "ToF Distance: %u mm (Status: %d)", tof.distance, tof.status);
+        //then we need to send the tof packet to the stm32.
+        send_tof_stm32(&tof);
+    }
+
+
 }
 
 void init_wifi(void) {
