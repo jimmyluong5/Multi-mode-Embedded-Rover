@@ -25,7 +25,8 @@ The project began as a basic motor-control prototype and has gradually evolved i
 * UART-based control and diagnostics through **PuTTY**
 * DC motor control using **FIT0484 motors** and a **TB6612FNG dual motor driver**
 * Regulated power distribution using **LM2596 buck converters**
-* Wireless communication between two **ESP32-S3** modules using **ESP-NOW**
+* Wireless multi-MCU communication across **ESP32-S3** nodes using **ESP-NOW**
+* Real-time Time-of-Flight (ToF) obstacle detection and automatic emergency braking using the **VL53L1X** laser ranger on a **FireBeetle 2 ESP32-S3** node
 * Custom 8-bit command packet system for wireless control
 * Multiple diagnostic and control modes for testing individual subsystems
 
@@ -540,7 +541,10 @@ To expand the rover beyond static track navigation into intelligent interactive 
 
 #### 4. Architecture & Roadmap Towards the "Follow-Me" Feature
 The FireBeetle node forms the sensory foundation for the rover's upcoming intelligent tracking modes:
-1. **Safety Interlock & Active Emergency Braking**: Distance packets forwarded to the STM32 via the receiver's UART pipeline act as a hardware safety envelope: if distance drops below `< 200 mm`, the STM32 immediately overrides active throttle to clamp motor PWM to 0.
+1. **Active Obstacle Detection & Dynamic Motor Interlock (Fully Integrated)**:
+   * **Real-Time Transmission**: Distance packets (`0xBB + tof_packet_t`) stream over ESP-NOW at 30 Hz to the rover's receiver, which forwards them over USART1 (`PA10`) to the STM32.
+   * **Collision Safety Envelope**: If the forward distance drops below the threshold (`< TOF_MAX_DISTANCE`, calibrated to 150–400 mm), the STM32 sets `obstacle_flag = true` and cuts motor drive via `Motor_Stop()` across both **Manual Joystick** and **IMU Gesture Tilt** modes.
+   * **Seamless Forward Recovery**: When the obstacle is removed (or moves beyond range `0xFFFF`), the camera continues transmitting `status = 1`, automatically clearing `obstacle_flag = false` and instantly restoring forward throttle.
 2. **Visual Target Centroid Acquisition**: Using the OV2640 camera, the ESP32-S3 will run lightweight color-blob and centroid tracking to calculate the target's horizontal pixel displacement (`target_x_offset`).
 3. **Dual-Loop Follow-Me Control**:
    * **Distance Regulation (Longitudinal PID)**: The ToF reading feeds a distance PID controller on the STM32 to modulate rear motor throttle, maintaining a steady 400–500 mm gap from a walking user or moving target.
@@ -697,13 +701,13 @@ Phase 3: Time-of-Flight (ToF) Collision Detection & Auto-Braking
 - [x] 5-second inactivity fail-safe timeout watchdog with multi-tone audio alarm
 - [x] Closed-loop STM32 DWT performance metrics & link telemetry transmission over ESP-NOW back to handheld transmitter LCD (20 Hz)
 - [x] 6-DoF IMU gesture tilt control (LSM6DS3) with proportional throttle and Ackermann servo steering
+- [x] Real-time Time-of-Flight (VL53L1X) laser obstacle avoidance and emergency braking integrated into STM32 motor pipeline across Manual & IMU modes
 
 ### In Progress
 - [ ] IMU dynamic heading stabilization & closed-loop straight-line yaw compensation
 
 ### Planned
 - [ ] IMU-based closed-loop straight-line heading stabilization & tilt compensation
-- [ ] Time-of-Flight (ToF) sensor integration for forward collision avoidance & emergency braking
 - [ ] Follow-me feature using the FireBeetle 2 Board ESP32-S3 (N16R8) AIoT Microcontroller with Camera
 - [ ] Return to Home Feature using dual IMUs (Adafruit LSM6DS3TR-C & MPU-6050)
 
