@@ -110,6 +110,10 @@ camera_fb_t* camera_take_picture(void) {
         esp_rom_printf("[CAMERA ERROR] Frame capture failed!\r\n");
         return NULL;
     }
+    const char magic[4] = {'I', 'M', 'G', '!'};
+    uint32_t size = (uint32_t)pic->len;
+    usb_serial_jtag_write_bytes(magic, 4, portMAX_DELAY);
+    usb_serial_jtag_write_bytes(&size, sizeof(uint32_t), portMAX_DELAY);
     usb_serial_jtag_write_bytes(pic->buf, pic->len, portMAX_DELAY);
     return pic;
 }
