@@ -6,6 +6,9 @@
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "driver/usb_serial_jtag.h"
+#include "driver/usb_serial_jtag_vfs.h"
+
 
 // FireBeetle 2 ESP32-S3 DVP Camera Pinout
 #define CAM_PIN_PWDN    -1
@@ -24,7 +27,6 @@
 #define CAM_PIN_VSYNC    6
 #define CAM_PIN_HREF    42
 #define CAM_PIN_PCLK     5
-
 static camera_config_t camera_config = {
     .pin_pwdn     = CAM_PIN_PWDN,
     .pin_reset    = CAM_PIN_RESET,
@@ -49,11 +51,12 @@ static camera_config_t camera_config = {
     .ledc_channel = LEDC_CHANNEL_0,
 
     .pixel_format = PIXFORMAT_JPEG,
-    .frame_size   = FRAMESIZE_QVGA,
-    .jpeg_quality = 12,
-    .fb_count     = 1,
-    .fb_location  = CAMERA_FB_IN_DRAM, // Using internal SRAM (320KB available)
-    .grab_mode    = CAMERA_GRAB_WHEN_EMPTY,
+    .frame_size   = FRAMESIZE_VGA, //FRAMESIZE_SXGA for 1280x1024, FRAMESIZE_UXGA - 1600x1200, 
+    //FRAMESIZE_QXGA - 2048_1536, it was on QVGA, just change X to V
+    .jpeg_quality = 8, //lower number = better quality was 12
+    .fb_count     = 2, //was 1, gonna use two frame buffers
+    .fb_location  = CAMERA_FB_IN_PSRAM, // Using internal SRAM (320KB available), we finna use the 8mb psram
+    .grab_mode    = CAMERA_GRAB_LATEST, //was camera_grab_when_empty
 };
 
 static esp_err_t last_init_error = ESP_FAIL;
@@ -63,12 +66,28 @@ void power_on_camera_pmic(void) {
 }
 
 esp_err_t init_camera(void) {
+    usb_serial_jtag_driver_config_t jtag_config = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
+    jtag_config.tx_buffer_size = 65536; // 64 KB!
+    usb_serial_jtag_driver_install(&jtag_config);
     last_init_error = esp_camera_init(&camera_config);
     if (last_init_error != ESP_OK) {
         esp_rom_printf("[CAMERA] esp_camera_init failed: 0x%x (%s)\r\n", last_init_error, esp_err_to_name(last_init_error));
         return last_init_error;
     }
     sensor_t *s = esp_camera_sensor_get();
+    if (s != NULL) {
+        s->set_brightness(s, 0);       // -2 to 2
+        s->set_contrast(s, 1);         // -2 to 2
+        s->set_saturation(s, 0);       // -2 to 2
+        s->set_sharpness(s, 1);        // -2 to 2
+        s->set_whitebal(s, 1);         // Auto White Balance on
+        s->set_awb_gain(s, 1);         // Auto White Balance Gain on
+        s->set_exposure_ctrl(s, 1);    // Auto Exposure on
+        s->set_aec2(s, 1);             // Auto Exposure DSP on
+        s->set_gain_ctrl(s, 1);        // Auto Gain on
+
+
+    }
     esp_rom_printf("[CAMERA SUCCESS] OV3660 Ready! PID: 0x%04X\r\n", s ? s->id.PID : 0);
     return ESP_OK;
 }
@@ -86,11 +105,12 @@ camera_fb_t* camera_take_picture(void) {
         return NULL;
     }
     camera_fb_t *pic = esp_camera_fb_get();
+    
     if (!pic) {
         esp_rom_printf("[CAMERA ERROR] Frame capture failed!\r\n");
         return NULL;
     }
-    esp_rom_printf("[CAMERA OK] OV3660 Frame Captured! Size: %u bytes (JPEG)\r\n", (unsigned int)pic->len);
+    usb_serial_jtag_write_bytes(pic->buf, pic->len, portMAX_DELAY);
     return pic;
 }
 
