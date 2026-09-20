@@ -6,4 +6,6 @@
 esp_err_t init_camera(void);
 camera_fb_t* camera_take_picture(void);
 void camera_return_picture(camera_fb_t *fb);
+void power_on_camera_pmic(void);
+
 #endif 

@@ -1,3 +1,4 @@
+#include "esp_rom_sys.h"
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -7,7 +8,7 @@
 
 static const char *TAG = "example_ulp";
 
-#define I2C_PORT_NUM 1
+#define I2C_PORT_NUM 0
 #define I2C_SCL_GPIO 14
 #define I2C_SDA_GPIO 13
 #define I2C_SPEED_HZ 400000
@@ -34,10 +35,13 @@ esp_err_t tof_init(void) {
     esp_err_t p = i2c_master_probe(bus, VL53L1X_ADDR_7BIT, pdMS_TO_TICKS(100));
     ESP_LOGI(TAG, "probe 0x%02X: %s", VL53L1X_ADDR_7BIT, esp_err_to_name(p));
 
-    ESP_ERROR_CHECK(vl53l1x_init(&sensor, bus, VL53L1X_ADDR_7BIT));
+    esp_err_t init_res = vl53l1x_init(&sensor, bus, VL53L1X_ADDR_7BIT);
+    if (init_res != ESP_OK) {
+        esp_rom_printf("[TOF] vl53l1x_init failed: %s (sensor not responding on D10/D11)\r\n", esp_err_to_name(init_res));
+        return init_res;
+    }
 
     vTaskDelay(pdMS_TO_TICKS(100)); // minimaal
-    // of 10–20 ms als je voeding/levelshifter traag is
     ESP_LOGI(TAG, "probe before init: %s", esp_err_to_name(i2c_master_probe(bus, 0x29, pdMS_TO_TICKS(100))));
     uint16_t id_pre = 0;
     ESP_LOGI(TAG, "id before init: %s, 0x%04X", esp_err_to_name(vl53l1x_get_sensor_id(&sensor, &id_pre)), id_pre);
@@ -60,11 +64,11 @@ esp_err_t tof_init(void) {
 
     // 
    
-    ESP_ERROR_CHECK(vl53l1x_set_macro_timing(&sensor, 33));        // 33 ms integration window
-    ESP_ERROR_CHECK(vl53l1x_set_intermeasurement_ms(&sensor, 33)); // 33 ms period (~30 Hz)
+    vl53l1x_set_macro_timing(&sensor, 33);        // 33 ms integration window
+    vl53l1x_set_intermeasurement_ms(&sensor, 33); // 33 ms period (~30 Hz)
 
 
-    ESP_ERROR_CHECK(vl53l1x_start(&sensor));
+    vl53l1x_start(&sensor);
     return ESP_OK;
 }
 
