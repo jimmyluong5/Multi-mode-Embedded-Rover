@@ -14,7 +14,7 @@ BAUD_RATE = 921600
 
 model = YOLO("yolo26n.pt") #using this specific model can use any model
 
-PACKET_FORMAT = "<bB"
+PACKET_FORMAT = "<BbB"
 #we just need to determine the steering angle and send that to the receiver then to the stm32
 #inputs are boolean target_found and offset, if the model detects if im left or right or centered.
 def get_steering_angle(target_found, x1, x2, frame_width):
@@ -136,7 +136,7 @@ def main():
 
                         
                         #create 2 byte command packet
-                        follow_packet = struct.pack(PACKET_FORMAT, steer_angle, 1 if target_found else 0)
+                        follow_packet = struct.pack(PACKET_FORMAT, 0xCC, steer_angle, 1 if target_found else 0)
                         status_text = f"Steer: {steer_angle:+03d} deg | Target: {'LOCKED' if target_found else 'SEARCHING'}"
                         cv2.putText(actual_frame, status_text, (20, 40),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0) if target_found else (0, 0, 255), 2)
