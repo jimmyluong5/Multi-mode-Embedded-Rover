@@ -43,6 +43,7 @@ static bool first_print = true;
 static UART_ControlMode current_mode = UART_MODE_MENU;
 
 
+
 static void UART_SendMessage(const char *message);
 
 void menu_main(void){
@@ -398,6 +399,38 @@ void UART_CONTROL_update(void) {
         }
         else {
           obstacle_flag = false;
+        }
+      }
+    }
+
+
+    else if (esp_byte == 0xCC) {
+      follow_packet_t follow_packet;
+      if (HAL_UART_Receive(&huart1, (uint8_t*)&follow_packet, sizeof(follow_packet_t), 20) == HAL_OK) {
+        int8_t steering_angle = follow_packet.steer_angle;
+        int8_t target_found = (follow_packet.target_found != 0);
+
+        if (target_found) {
+          // Wake up motor driver and refresh watchdog timer
+          Motor_SetStandby(false);
+          last_command_time = HAL_GetTick();
+
+          // Proportional Front Servo Steering: -30 to +30 degrees
+          int16_t target_servo = SERVO_ANGLE_CENTER + steering_angle;
+          if (target_servo < SERVO_ANGLE_MIN) target_servo = SERVO_ANGLE_MIN;
+          if (target_servo > SERVO_ANGLE_MAX) target_servo = SERVO_ANGLE_MAX;
+          Servo_SetAngle((uint8_t)target_servo);
+
+          // Drive motors forward if obstacle_flag is clear (ToF safety check)
+          if (!obstacle_flag) {
+            Motor_Forward(200);
+          } else {
+            Motor_Stop();
+          }
+        }
+        else {
+          Servo_SetAngle(SERVO_ANGLE_CENTER);
+          Motor_Stop();
         }
       }
     }

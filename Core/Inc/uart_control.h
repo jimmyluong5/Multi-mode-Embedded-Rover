@@ -44,7 +44,11 @@ typedef struct __attribute__((packed)) {
 }tof_packet_t;
 
 
-
+typedef struct __attribute((packed)) {
+    uint8_t packet_type;
+    int8_t steer_angle;
+    uint8_t target_found;
+} follow_packet_t;
 //everytime you want to add a new mode, just add it here.
 typedef enum {
   UART_MODE_MENU,
