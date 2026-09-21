@@ -150,7 +150,7 @@ void app_main(void) {
             packet.speed = 0;
             packet.mode = MENU_MODE;
         } 
-        else if (current_page == PAGE_AUTO || current_page == PAGE_AUTO_DATA) {
+        else if (current_page == PAGE_AUTO) {
             extern bool auto_running;
             packet.button_data = 0;
             packet.joystick_x = 2000;

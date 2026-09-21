@@ -224,7 +224,7 @@ void process_arrow_keys(data_packet_t *packet) {
                 ESP_LOGI(TAG, "Emergency STOP -> Speed Reset to 50%% (128)");
             }
             break;
-        //imu page
+        //auto page
         case PAGE_AUTO:
             
             if (clicked_left) {
@@ -234,10 +234,6 @@ void process_arrow_keys(data_packet_t *packet) {
                 packet->mode = active_mode;
                 //set the boolean flag back to false
                 ESP_LOGI(TAG, "Returning back to Menu Page");
-            }
-            else if (clicked_right) {
-                current_page = PAGE_AUTO_DATA;
-                ESP_LOGI(TAG, "Auto Data Page");
             }
             else if (clicked_center) {
                 //depending on what the flag is it should be the opposite.
@@ -267,13 +263,6 @@ void process_arrow_keys(data_packet_t *packet) {
                 }
             }
 
-            break;
-
-        case PAGE_AUTO_DATA:
-            if (clicked_left) {
-                current_page = PAGE_AUTO;
-                ESP_LOGI(TAG, "Returning back to Auto Page");
-            }
             break;
 
         case PAGE_IMU:

@@ -509,8 +509,7 @@ static void animation_task(void *pvParameters) {
             display_pretty_colors(spi);
             vTaskDelay(pdMS_TO_TICKS(10));
         }
-        else if (current_page == PAGE_MANUAL || current_page == PAGE_MANUAL_DATA || current_page == PAGE_AUTO ||
-                 current_page == PAGE_AUTO_DATA) {
+        else if (current_page == PAGE_MANUAL || current_page == PAGE_MANUAL_DATA || current_page == PAGE_AUTO) {
             // Decode the background image once upon entering the page
             if (last_rendered_page != current_page) {
                 decode_image(0, &pixels);

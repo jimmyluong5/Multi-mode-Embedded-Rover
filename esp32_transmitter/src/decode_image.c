@@ -286,7 +286,6 @@ esp_err_t decode_image(int frame_idx, uint16_t **pixels) {
             break;
 
             
-        case PAGE_AUTO_DATA:
         case PAGE_LEFTPAGE:
             jd.inData = left_start;
             jd.inLen  = left_end - left_start;

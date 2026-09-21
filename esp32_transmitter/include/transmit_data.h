@@ -50,7 +50,6 @@ typedef enum {
     PAGE_MANUAL,
     PAGE_MANUAL_DATA, //2nd page of manual
     PAGE_AUTO,
-    PAGE_AUTO_DATA,
     PAGE_IMU,
     PAGE_GITHUB,
     PAGE_LINKEDIN,
