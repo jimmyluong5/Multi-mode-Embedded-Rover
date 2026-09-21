@@ -2,9 +2,16 @@ import cv2
 import numpy as np
 import serial
 import time
-
+from ultralytics import YOLO
 SERIAL_PORT = "COM9"
 BAUD_RATE = 2000000
+
+
+model = YOLO("yolo26n.pt") #using this specific model
+
+
+
+
 
 def main():
     print(f"Connecting to {SERIAL_PORT} at {BAUD_RATE} baud...")
@@ -66,6 +73,7 @@ def main():
             elif header_idx == -1 and len(buffer) > 8192:
                 buffer = buffer[-2048 :]
 
+        #click the x key to exit.
         if cv2.waitKey(1) & 0xFF == ord('x'):
             break
 
