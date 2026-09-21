@@ -15,6 +15,7 @@ void init_esp_nvs(void);
 void init_wifi(void);
 void init_esp_now(void);
 esp_err_t send_tof_packet(tof_packet_t *packet);
+esp_err_t send_follow_packet(const uint8_t *packet, size_t len);
 
 
 

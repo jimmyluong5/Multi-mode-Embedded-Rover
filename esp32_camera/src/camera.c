@@ -1,3 +1,4 @@
+#include "wifi.h"
 #include "esp_rom_sys.h"
 #include "camera.h"
 #include "esp_log.h"
@@ -99,7 +100,8 @@ camera_fb_t* camera_take_picture(void) {
             retry_cnt = 0;
             esp_rom_printf("[CAMERA] Retrying camera init...\r\n");
             init_camera();
-        } else {
+        } 
+        else {
             esp_rom_printf("[CAMERA ERROR] Init failed (0x%x: %s)\r\n", last_init_error, esp_err_to_name(last_init_error));
         }
         return NULL;
@@ -115,6 +117,19 @@ camera_fb_t* camera_take_picture(void) {
     usb_serial_jtag_write_bytes(magic, 4, portMAX_DELAY);
     usb_serial_jtag_write_bytes(&size, sizeof(uint32_t), portMAX_DELAY);
     usb_serial_jtag_write_bytes(pic->buf, pic->len, portMAX_DELAY);
+
+
+    uint8_t rx_buf[64];
+    int rx_len = usb_serial_jtag_read_bytes(rx_buf, sizeof(rx_buf), 0);
+    if (rx_len >= 3) {
+        for (int i = rx_len - 3; i >= 0; i--) {
+            if (rx_buf[i] == 0xCC) {
+                send_follow_packet(&rx_buf[i], 3);
+                break;
+            }
+        }
+    }
+
     return pic;
 }
 

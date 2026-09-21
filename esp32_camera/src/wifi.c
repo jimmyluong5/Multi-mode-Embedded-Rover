@@ -93,3 +93,8 @@ void init_esp_now(void) {
 esp_err_t send_tof_packet(tof_packet_t *packet) { 
     return esp_now_send(receiver_mac, (const uint8_t*)packet, sizeof(tof_packet_t));
 }
+
+
+esp_err_t send_follow_packet(const uint8_t *packet, size_t len) {
+    return esp_now_send(receiver_mac, packet, len);
+}
