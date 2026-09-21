@@ -342,57 +342,32 @@ void init_button_pin(void) {
 }
 
 uint8_t read_buttons(void) {
-    uint8_t data_packet = 0x00; //each 0 is half a byte
-
-//we are going to try a debouncing method with sampling
-//where we sample once and see the state of the buttons, then we wait 20ms later and sample again,
-//in the end we return the bitwise and between the two samples to ensure that a proper button click happened
-
-    uint8_t sample1 = 0x00; //8 bit
-    uint8_t sample2 = 0x00;
+    uint8_t raw = 0x00;
     
-    //populate sample1 with the data from the buttons
+    // Read the instantaneous physical pin levels
     for (int i = 0; i < 5; i++) {
         if (gpio_get_level(button_pins[i]) == 0) {
-            //then just shift the bits and place it into sample1
-            sample1 = sample1 | (1<<i);
+            raw |= (1 << i);
         }
     }
 
-    //sample1 has the data from the first sampling of the button states
+    // Non-blocking software debouncing based on loop timestamps
+    static uint8_t stable_state = 0x00;
+    static uint8_t last_raw = 0x00;
+    static uint32_t last_change_time = 0;
 
-    //now we check if sample1 contains any 1s, which means we have a button press, if not then
-    //we just move to the 2nd sample
-    
-    //if it does then we have to delay by 20ms to allow the physical button to go back up
-    if (sample1 != 0) {
-        vTaskDelay(pdMS_TO_TICKS(20)); // debounce 20ms
+    uint32_t now = pdTICKS_TO_MS(xTaskGetTickCount());
+    if (raw != last_raw) {
+        last_change_time = now;
+        last_raw = raw;
     }
 
-    //then we sample again and place the bits into sample2
-   
-    for (int i = 0; i < 5; i++) {
-        if (gpio_get_level(button_pins[i]) == 0) {
-            //then we need to shift the data packet according to the index
-            sample2 = sample2 | (1 << (i)); //its i because we need the 0th index, 
-            //i+1 would be if something is occupying bit 0      
-
-            //make the speaker sound.
-        }
+    // Require signal to remain stable for >= 20ms before latching
+    if ((now - last_change_time) >= 20) {
+        stable_state = raw;
     }
-    //we need to do this to actually get a complete and clean button press.
-    //eg if sample1 = 0000 0010
-    // sample2 = 0000, 0001, then there must be a mistake and data_packet will be zero
-    
-    //but if
-    //sample1 = 0000 0010
-    //sample2 = 0000 0010 then 
-    //data_packet = 0000 0010 and we return this.
 
-   
-
-    
-    data_packet = sample1 & sample2; 
+    uint8_t data_packet = stable_state; 
     //so our data packet contains info of the buttons
 
     static uint8_t last_buttons = 0x00;

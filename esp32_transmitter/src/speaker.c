@@ -56,25 +56,24 @@ void init_speaker(void) {
 }
 
 void speaker_update(uint8_t button_packet) {
-    //check if the button is pressed
-    int sample1 = 0;
-    int sample2 = 0; //make the debouncing logic with this.
-    
-    if (gpio_get_level(joystick_button) == 0) {
-        sample1 = 1;
-    }
-    
-    //if the sample is actually valid then pause for 20ms to let the button
-    //bounce back up
-    if (sample1 == 1) {
-        vTaskDelay(pdMS_TO_TICKS(50)); // debounce 20ms
+    // Non-blocking debounce for the joystick button
+    static int joy_stable = 0;
+    static int last_joy_raw = 0;
+    static uint32_t last_joy_change = 0;
+
+    int joy_raw = (gpio_get_level(joystick_button) == 0);
+    uint32_t now = pdTICKS_TO_MS(xTaskGetTickCount());
+
+    if (joy_raw != last_joy_raw) {
+        last_joy_change = now;
+        last_joy_raw = joy_raw;
     }
 
-    if (gpio_get_level(joystick_button) == 0) {
-        sample2 = 1;
+    if ((now - last_joy_change) >= 20) {
+        joy_stable = joy_raw;
     }
 
-    bool joystick_pressed = (sample1 == 1 && sample2 == 1);
+    bool joystick_pressed = (joy_stable == 1);
     bool normal_button_pressed = (button_packet != 0);
 
     if (joystick_pressed) {
