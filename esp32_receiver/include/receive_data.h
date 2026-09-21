@@ -42,6 +42,13 @@ typedef struct __attribute__((packed)) {
 }tof_packet_t;
 
 
+typedef struct __attribute((packed)) {
+    uint8_t packet_type;
+    int8_t steer_angle;
+    uint8_t target_found;
+} follow_packet_t;
+
+
 void receive_button_press(data_packet_t *packet);
 void init_pins(void);
 //void update_speed(data_packet_t* packet); not needed because we not updating speed at all 
@@ -49,4 +56,5 @@ void init_pins(void);
 
 void send_tof_stm32(tof_packet_t *packet);
 void send_packet_stm32(data_packet_t *packet);
+void send_follow_stm32(follow_packet_t *packet);
 #endif

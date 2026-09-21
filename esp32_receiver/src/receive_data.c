@@ -61,3 +61,10 @@ void send_tof_stm32(tof_packet_t *packet) {
     uart_write_bytes(UART_NUM_1, (const char*)packet, sizeof(tof_packet_t)); 
 
 }
+
+void send_follow_stm32(follow_packet_t* packet) {
+    //marker
+    uint8_t marker = 0xCC;
+    uart_write_bytes(UART_NUM_1, (const char*)&marker, 1);
+    uart_write_bytes(UART_NUM_1, (const char*)packet, sizeof(follow_packet_t));
+}

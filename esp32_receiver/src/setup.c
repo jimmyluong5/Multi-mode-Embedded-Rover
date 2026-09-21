@@ -33,6 +33,12 @@ static void OnDataRecv(const esp_now_recv_info_t *esp_now_info, const uint8_t *d
         //then we need to send the tof packet to the stm32.
         send_tof_stm32(&tof);
     }
+    else if (data_len == sizeof(follow_packet_t) && data[0] == 0xCC) {
+        follow_packet_t follow_packet;
+        memcpy(&follow_packet, data, sizeof(follow_packet_t));
+        ESP_LOGI("FOLLOW_RECV", "Follow Steer: %d, Found: %d", follow_packet.steer_angle, follow_packet.target_found);
+        send_follow_stm32(&follow_packet);
+    }
 
 
 }
