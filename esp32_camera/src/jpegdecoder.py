@@ -13,23 +13,40 @@ model = YOLO("yolo26n.pt")  # or "yolov8n.pt"
 # Command packet: 0xCC (sync byte), steer_angle (-30 to +30 deg), target_found (1 or 0)
 PACKET_FORMAT = "<BbB"
 
+#global variable to store the previous smoothed angle
+smoothed_steer = 0.0
+
 def get_steering_angle(target_found, x1, x2, frame_width):
+
+    #we finna apply an ema filter to get rid of the jitter
+    global smoothed_steer
+
+    
     if not target_found:
-        return 0
+        smoothed_steer = smoothed_steer * 0.8
+        return int(smoothed_steer)
 
     frame_center = frame_width / 2.0
     mid_x = (x1 + x2) / 2.0
     offset = mid_x - frame_center
 
-    deadband = 40
-    max_steer = 30
+    deadband = 25    # Tighter deadband (was 40) for quicker steering response
+    max_steer = 48   # Increased from 30 to allow full Ackermann steering lock
 
     if abs(offset) < deadband:
-        steer_angle = 0
+        raw_steer = 0
     else:
-        steer_angle = int(-(offset / frame_center) * max_steer)  # Inverted to match servo direction
-        steer_angle = max(-max_steer, min(max_steer, steer_angle))
-    return steer_angle
+        # Higher proportional gain: full lock when target is ~65% across the frame
+        steer_ratio = offset / (frame_center * 0.65)
+        raw_steer = int(-steer_ratio * max_steer)
+        raw_steer = max(-max_steer, min(max_steer, raw_steer))
+    alpha = 0.3
+    #ema equation is EMA_today = (alpha * Price_today) + (1-alpha)*(EMA_yesterday)
+    #ema_yesterday is the smoothed steer which is the previous value of the steering
+    #price_today is the current steering that we calculate.all
+    smoothed_steer = (alpha*raw_steer) + (1-alpha)*smoothed_steer
+    return int(smoothed_steer)
+
 
 def main():
     print(f"Connecting to {SERIAL_PORT} at {BAUD_RATE} baud...")
@@ -53,6 +70,8 @@ def main():
     # Flush any leftover partial bytes
     ser.reset_input_buffer()
     last_print_time = 0
+    last_sent_steer = 0
+    last_target_found = False
 
     while True:
         data = ser.read(ser.in_waiting or 4096)
@@ -95,8 +114,13 @@ def main():
                             imgsz=480,
                             tracker="botsort.yaml", #was bytetrack.yaml, now bot sort tracker.
                             verbose=False,
-                            classes=[67], #used to be classes = [0] for person, changed [67]
-                            conf = 0.35 #give a confidence threshold.
+                            classes=[67], 
+                            #used to be 
+                            # classes = [0] for person, 
+                            # changed [67] - phone, 
+                            # classes = [39] = bottle
+                            #classes = [73] - book
+                            conf = 0.30 #give a confidence threshold.
                         )
                         actual_frame = results[0].plot()
 
@@ -111,10 +135,16 @@ def main():
 
                         # Create and send 3-byte command packet back to ESP32: [0xCC, steer_angle, target_found]
                         follow_packet = struct.pack(PACKET_FORMAT, 0xCC, steer_angle, 1 if target_found else 0)
-                        try:
-                            ser.write(follow_packet)
-                        except Exception as e:
-                            print(f"Serial write error: {e}")
+
+                        hysteresis_threshold = 2 #two degrees can change later.
+                        if (abs(steer_angle-last_sent_steer) >= hysteresis_threshold or (target_found != last_target_found)):
+                            last_sent_steer = steer_angle
+                            last_target_found = target_found
+
+                            try:
+                                ser.write(follow_packet)
+                            except Exception as e:
+                                print(f"Serial write error: {e}")
 
                         if time.time() - last_print_time > 0.5:
                             print(f"[TRACK] Target: {'LOCKED' if target_found else 'SEARCHING':<9} | Steer: {steer_angle:+03d} deg | Sent: {[hex(b) for b in follow_packet]}")
