@@ -1,4 +1,8 @@
 # Multi-mode Rover
+
+> **Status: Project Complete (September 2026)** 🎉  
+> A fully integrated multi-microcontroller autonomous rover featuring distributed wireless control, FreeRTOS preemptive scheduling, Time-of-Flight collision safety, and real-time computer vision "Follow-Me" tracking.
+
 <img width="480" height="853" alt="line_following_github" src="https://github.com/user-attachments/assets/8277d7d8-333a-4ad6-8d29-b165df40b6e0" />
 
 Rough Prototype of Line Following in mid-July
@@ -19,6 +23,8 @@ The project began as a basic motor-control prototype and has gradually evolved i
 
 ## Features
 
+* **Autonomous "Follow-Me" Target Tracking**: Powered by **Ultralytics YOLO (BoT-SORT)** and **OpenCV** over a 2 Mbaud camera stream with **EMA filtering** and Ackermann steering
+* **FreeRTOS Preemptive Dual-Core Multitasking**: Pinned on the ESP32-S3 handheld transmitter isolating 40 Hz RF transmission from heavy SPI LCD rendering
 * Autonomous line following using an **STM32G431KB**
 * 8-channel reflectance sensing using the **QTRX-MD-08A**
 * External ADC acquisition using the **MCP3208**
@@ -554,6 +560,52 @@ The FireBeetle node forms the sensory foundation for the rover's upcoming intell
    * **Steering Alignment (Lateral PID)**: The camera's horizontal offset feeds the Ackermann front servo, steering the wheels left or right to keep the target centered in the field of view.
 
 
+### 18. Autonomous Computer Vision & YOLO "Follow-Me" Tracking Pipeline
+
+To achieve true interactive autonomy, a real-time computer vision "Follow-Me" pipeline was engineered. The front-mounted camera node streams high-throughput video to host perception models in Python, which calculate proportional steering vectors to pursue moving targets dynamically:
+
+```text
+  [ OV3660 / OV2640 ] ──> [ ESP32-S3 Camera Node ]
+                                 │
+                         (2 Mbaud Serial Stream)
+                         [ "IMG!" + Length + JPEG ]
+                                 ▼
+              [ Host PC: Python OpenCV + Ultralytics YOLO ]
+                                 │
+              ┌──────────────────┴──────────────────┐
+              ▼                                     ▼
+     [ YOLO + BoT-SORT Tracker ]           [ Signal Conditioning ]
+     (Multi-Object ID Tracking)           (Deadband + EMA α=0.3 + Hysteresis)
+              └──────────────────┬──────────────────┘
+                                 ▼
+              [ Binary Command Packet: 0xCC + Steer + Locked ]
+                                 │
+                      (High-Speed Return Link)
+                                 ▼
+                      [ STM32 Steering Servo ]
+                      (Real-Time Ackermann Lock)
+```
+
+#### 1. High-Speed Serial Video Streaming & Frame Framing
+* **2,000,000 Baud Throughput**: Streamed compressed JPEG frames over high-speed USB-UART at 2 Mbaud to maintain high framerates and minimize transmission latency.
+* **Robust Packet Synchronization (`IMG!`)**: Engineered a custom frame-delimiting protocol prefixing each frame with a 4-byte sync header (`IMG!`) followed by a 4-byte little-endian payload length.
+* **Integrity Validation**: Implemented dual JPEG SOI (`0xFFD8`) and EOI (`0xFFD9`) marker verification in Python, immediately dropping corrupted or partial DMA frames before decoding.
+
+#### 2. Real-Time Deep Learning Perception (YOLO & BoT-SORT)
+* **Ultralytics YOLO Integration**: Deployed YOLO (`yolo26n.pt` / `yolov8n.pt`) for continuous object detection and target localization with confidence filtering.
+* **Persistent Multi-Object Tracking (BoT-SORT)**: Utilized the BoT-SORT tracking algorithm (`tracker="botsort.yaml"`, `persist=True`) to maintain persistent track IDs across camera frame drops and temporary occlusions.
+
+#### 3. Control Signal Conditioning & Noise Reduction
+* **Proportional Steering Calculation**: Computed angular steering error relative to the horizontal frame center with full Ackermann steering lock (±48°).
+* **Deadband Windowing**: Implemented a 25-pixel deadband around the frame center to eliminate servo chatter during straight-line tracking.
+* **Exponential Moving Average (EMA) Filter**: Applied an EMA low-pass filter (α = 0.3) to smooth rapid bounding-box fluctuations and ensure fluid servo kinematics.
+* **Hysteresis Thresholding**: Suppressed redundant serial transmissions if steering changes remained below 2°, dramatically reducing serial bus saturation.
+* **Exponential Target Loss Decay**: If the target exits the field of view, the steering angle decays at 20% per frame toward center (`smoothed_steer *= 0.8`), preventing sharp snap-backs.
+
+#### 4. Closed-Loop Command Packet
+* Dispatches a compact 3-byte command packet (`[0xCC, steer_angle, target_found]`) back to the rover to steer the physical front wheels and throttle the drive motors toward the locked target.
+
+
 ## Hardware Interconnect (Receiver <-> STM32):
 * **ESP32-S3 Pin 42 (UART1 TX)** --> **STM32 PA10 (USART1 RX / D1)** @ 115,200 baud
 * **ESP32-S3 Pin 2 (UART1 RX)** <-- **STM32 PA9 (USART1 TX / D0)** @ 115,200 baud
@@ -690,6 +742,9 @@ Phase 3: Time-of-Flight (ToF) Collision Detection & Auto-Braking
 
 ## Current Status Summary
 
+> **Status: Project Complete (September 2026)** 🎉  
+> All primary design goals and subsystems—including distributed multi-MCU wireless networking, FreeRTOS preemptive multitasking, Time-of-Flight collision safety, and real-time computer vision "Follow-Me" tracking—have been fully implemented, validated, and integrated.
+
 ### Completed
 - [x] Bidirectional DC motor control with TB6612FNG & dual hardware PWM (TIM1_CH1 / TIM17_CH1)
 - [x] 8-Channel reflectance array acquisition via MCP3208 SPI ADC
@@ -705,6 +760,8 @@ Phase 3: Time-of-Flight (ToF) Collision Detection & Auto-Braking
 - [x] Closed-loop STM32 DWT performance metrics & link telemetry transmission over ESP-NOW back to handheld transmitter LCD (20 Hz)
 - [x] 6-DoF IMU gesture tilt control (LSM6DS3) with proportional throttle and Ackermann servo steering
 - [x] Real-time Time-of-Flight (VL53L1X) laser obstacle avoidance and emergency braking integrated into STM32 motor pipeline across Manual & IMU modes
+- [x] Preemptive FreeRTOS dual-core multitasking on ESP32-S3 transmitter (Core 0: 40 Hz RF transmission, Core 1: SPI LCD rendering)
+- [x] Autonomous "Follow-Me" target tracking vision pipeline using Ultralytics YOLO (BoT-SORT) and OpenCV over a 2 Mbaud camera stream with EMA filtering and Ackermann steering
 
 ### In Progress
 - [ ] IMU dynamic heading stabilization & closed-loop straight-line yaw compensation
