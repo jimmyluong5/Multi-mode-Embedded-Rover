@@ -562,6 +562,13 @@ The FireBeetle node forms the sensory foundation for the rover's upcoming intell
 
 ### 18. Autonomous Computer Vision & YOLO "Follow-Me" Tracking Pipeline
 
+
+
+
+https://github.com/user-attachments/assets/8dc2a665-b75a-4082-97ff-59c3671479e8
+
+
+
 To achieve true interactive autonomy, a real-time computer vision "Follow-Me" pipeline was engineered. The front-mounted camera node streams high-throughput video to host perception models in Python, which calculate proportional steering vectors to pursue moving targets dynamically:
 
 ```text
@@ -762,12 +769,4 @@ Phase 3: Time-of-Flight (ToF) Collision Detection & Auto-Braking
 - [x] Real-time Time-of-Flight (VL53L1X) laser obstacle avoidance and emergency braking integrated into STM32 motor pipeline across Manual & IMU modes
 - [x] Preemptive FreeRTOS dual-core multitasking on ESP32-S3 transmitter (Core 0: 40 Hz RF transmission, Core 1: SPI LCD rendering)
 - [x] Autonomous "Follow-Me" target tracking vision pipeline using Ultralytics YOLO (BoT-SORT) and OpenCV over a 2 Mbaud camera stream with EMA filtering and Ackermann steering
-
-### In Progress
-- [ ] IMU dynamic heading stabilization & closed-loop straight-line yaw compensation
-
-### Planned
-- [ ] IMU-based closed-loop straight-line heading stabilization & tilt compensation
-- [ ] Follow-me feature using the FireBeetle 2 Board ESP32-S3 (N16R8) AIoT Microcontroller with Camera
-- [ ] Return to Home Feature using dual IMUs (Adafruit LSM6DS3TR-C & MPU-6050)
 
