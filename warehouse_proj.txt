@@ -1,0 +1,104 @@
+Configuration	warehouse_proj
+STM32CubeMX 	6.18.0
+Date	09/22/2026
+MCU	STM32G431KBTx
+
+
+
+PERIPHERALS	MODES	FUNCTIONS	PINS
+SPI1	Full-Duplex Master	SPI1_MISO	PB4
+SPI1	Full-Duplex Master	SPI1_MOSI	PB5
+SPI1	Full-Duplex Master	SPI1_SCK	PB3
+SYS	Serial Wire	SYS_JTCK-SWCLK	PA14
+SYS	Serial Wire	SYS_JTMS-SWDIO	PA13
+SYS	TIM2	SYS_VS_tim2	VP_SYS_VS_tim2
+SYS	Dead Battery Signals disabled	SYS_VS_DBSignals	VP_SYS_VS_DBSignals
+TIM1	PWM Generation CH1	TIM1_CH1	PA8
+TIM3	PWM Generation CH3	TIM3_CH3	PB0
+TIM16	Enable_Timer	TIM16_VS_ClockSourceINT	VP_TIM16_VS_ClockSourceINT
+TIM17	Enable_Timer	TIM17_VS_ClockSourceINT	VP_TIM17_VS_ClockSourceINT
+TIM17	PWM Generation CH1	TIM17_CH1	PA7
+USART1	Asynchronous	USART1_RX	PA10
+USART1	Asynchronous	USART1_TX	PA9
+
+
+
+Pin Nb	PINs	FUNCTIONs	LABELs
+5	PA0	GPIO_Output	DC_Motor_BIN2
+6	PA1	GPIO_Output	DC_Motor_BIN1
+9	PA4	GPIO_Output	DC_Motor_STBY
+10	PA5	GPIO_Output	DC_Motor_AIN2
+11	PA6	GPIO_Output	DC_Motor_AIN1
+12	PA7	TIM17_CH1	Motor_Driver_PWMA
+13	PB0	TIM3_CH3	Servo_Suspension
+18	PA8	TIM1_CH1	Motor_Driver_PWMB
+19	PA9	USART1_TX	
+20	PA10	USART1_RX	
+23	PA13	SYS_JTMS-SWDIO	T_SWDIO
+24	PA14	SYS_JTCK-SWCLK	T_SWCLK
+26	PB3	SPI1_SCK	
+27	PB4	SPI1_MISO	
+28	PB5	SPI1_MOSI	
+29	PB6	GPIO_Output	ADC_SPI_CS
+PERIPHERALS	MODES	FUNCTIONS	PINS
+SPI1	Full-Duplex Master	SPI1_MISO	PB4
+SPI1	Full-Duplex Master	SPI1_MOSI	PB5
+SPI1	Full-Duplex Master	SPI1_SCK	PB3
+SYS	Serial Wire	SYS_JTCK-SWCLK	PA14
+SYS	Serial Wire	SYS_JTMS-SWDIO	PA13
+SYS	TIM2	SYS_VS_tim2	VP_SYS_VS_tim2
+SYS	Dead Battery Signals disabled	SYS_VS_DBSignals	VP_SYS_VS_DBSignals
+TIM1	PWM Generation CH1	TIM1_CH1	PA8
+TIM3	PWM Generation CH3	TIM3_CH3	PB0
+TIM16	Enable_Timer	TIM16_VS_ClockSourceINT	VP_TIM16_VS_ClockSourceINT
+TIM17	Enable_Timer	TIM17_VS_ClockSourceINT	VP_TIM17_VS_ClockSourceINT
+TIM17	PWM Generation CH1	TIM17_CH1	PA7
+USART1	Asynchronous	USART1_RX	PA10
+USART1	Asynchronous	USART1_TX	PA9
+
+
+
+Pin Nb	PINs	FUNCTIONs	LABELs
+5	PA0	GPIO_Output	DC_Motor_BIN2
+6	PA1	GPIO_Output	DC_Motor_BIN1
+9	PA4	GPIO_Output	DC_Motor_STBY
+10	PA5	GPIO_Output	DC_Motor_AIN2
+11	PA6	GPIO_Output	DC_Motor_AIN1
+12	PA7	TIM17_CH1	Motor_Driver_PWMA
+13	PB0	TIM3_CH3	Servo_Suspension
+18	PA8	TIM1_CH1	Motor_Driver_PWMB
+19	PA9	USART1_TX	
+20	PA10	USART1_RX	
+23	PA13	SYS_JTMS-SWDIO	T_SWDIO
+24	PA14	SYS_JTCK-SWCLK	T_SWCLK
+26	PB3	SPI1_SCK	
+27	PB4	SPI1_MISO	
+28	PB5	SPI1_MOSI	
+29	PB6	GPIO_Output	ADC_SPI_CS
+
+
+
+SOFTWARE PROJECT
+
+Project Settings : 
+Project Name : warehouse_proj
+Project Folder : C:\Users\jimmy\Downloads\warehouse_proj
+Toolchain / IDE : CMake
+Firmware Package Name and Version : STM32Cube FW_G4 V1.6.3
+
+
+Code Generation Settings : 
+STM32Cube MCU packages and embedded software packs : Copy only the necessary library files
+Generate peripheral initialization as a pair of '.c/.h' files per peripheral : No
+Backup previously generated files when re-generating : No
+Delete previously generated files when not re-generated : Yes
+Set all free pins as analog (to optimize the power consumption) : No
+
+
+Toolchains Settings : 
+Compiler Optimizations : 
+
+
+
+
+
