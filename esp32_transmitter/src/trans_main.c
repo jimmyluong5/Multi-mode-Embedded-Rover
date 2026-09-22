@@ -1,4 +1,5 @@
 #include "freertos/FreeRTOS.h"
+#include "freertos/projdefs.h"
 #include "freertos/task.h"
 #include "setup.h"
 #include "transmit_data.h"
@@ -22,6 +23,7 @@ bool failsafe_flag = false;
 
 static data_packet_t last_sent_packet = {0};
 uint32_t last_time_rx = 0;
+uint32_t last_user_active_time = 0;
 void deadband_filter(data_packet_t* packet, uint16_t raw_x, uint16_t raw_y) {
  // Deadband filter
         if (abs((int)raw_x - (int)last_sent_packet.joystick_x) < 25) {
@@ -38,7 +40,6 @@ void deadband_filter(data_packet_t* packet, uint16_t raw_x, uint16_t raw_y) {
         }
 }
 
-uint32_t last_user_active_time = 0;
 
 void check_failsafe(data_packet_t *packet) {
     // If we're in the manual page
@@ -73,38 +74,25 @@ void check_failsafe(data_packet_t *packet) {
         last_user_active_time = 0;
     }
 }
-void app_main(void) {
-    // 1. Peripherals, NVS, WiFi, LCD, UART & ESP-NOW initialization
-    init_esp_nvs();
-    init_wifi();
-    init_esp_now();
-    init_button_pin();
-    init_joystick();
-    init_speaker();
-    init_lcd_driver();
-    UART_CONTROL_init();
-    init_imu();
-    
 
-    printf("\r\n==========================================\r\n");
-    printf("   ESP32 TRANSMITTER READY               \r\n");
-    printf("   Pure ESP-NOW Button Transmission Ready \r\n");
-    printf("==========================================\r\n");
 
-    static uint32_t last_time = 0;
-    //static uint8_t current_speed = 0;
+//we create the control task for the transmitter, this has a priority of 5, 
+//the highest priority
+static void control_task(void *pvParameters) {
+    //we need to keep track of this so that we don't use blocking delays which makes the cpu do nothing for x time
+    //instead we use curr_time - last_time > x_time 
+    TickType_t curr_time = xTaskGetTickCount(); //this is the curr time of the cpu
+    const TickType_t xFreq = pdMS_TO_TICKS(10); //this is how long the task should last.
+    static uint32_t last_tx_time = 0; 
+        
 
-    //eventually we will get rid of this super loop with preemptive scheduling 
-    while (1)
-    {
+    while(1) {
+        //we need to read the raw imu and gyrovalues
+        //start the metrics loop so we can know metrics such as jitter, latency 
         metrics_record_loop_start(); 
+
+        //we need to read the raw imu and gyrovalues
         
-        
-
-        // Check for serial console commands
-        UART_CONTROL_update();
-
-
         // 1. Read raw IMU values
         int16_t gx = 0, gy = 0, gz = 0;
         int16_t ax = 0, ay = 0, az = 0;
@@ -114,25 +102,24 @@ void app_main(void) {
         int16_t tilt_x = 0, tilt_y = 0;
         imu_process_tilt(ax, ay, &tilt_x, &tilt_y);
 
-        // Create a clean zeroed out packet structure for this 10ms time frame.
+
+        //prepare the data packet but clear it first
         data_packet_t packet = {0};
-
-        // Print joystick debug readings to the console, not technically needed.
-        print_joystick_values();
-
-        // Place filtered IMU values into data packet
         packet.accel_x = tilt_x;
         packet.accel_y = tilt_y;
         packet.accel_z = az;
-        packet.gyro_z  = gz;
+        packet.gyro_z = gz;
 
-        //read the buttons first, and we sample the 5 push buttons with the debounce algo 
+        //read and debounce physical buttons
         uint8_t raw_buttons = read_buttons();
-        packet.button_data = raw_buttons;
-
+        
+        //fill the packet with the raw_buttons
+        packet.button_data = raw_buttons; //lol forgot, using packet.button is for accessing struct var
+        //packet->button is ptr like accessing ptr
         //call the new arrow and mode processor, then from reading the buttons we know how to process 
         //the arrow keys
         process_arrow_keys(&packet);
+        
 
         // Read the analog ADC voltages from the joystick
         uint16_t raw_x = read_joystick_horizontal();
@@ -173,10 +160,12 @@ void app_main(void) {
             packet.button_data = 0;
             packet.joystick_x = 2000;
             packet.joystick_y = 2000;
+
             if (imu_running) {
                 packet.mode = IMU_MODE;
                 packet.speed = current_speed;
-            } else {
+            } 
+            else {
                 packet.mode = MENU_MODE; // Stay stationary when stopped
                 packet.speed = 0;
                 packet.accel_x = 0;
@@ -187,35 +176,66 @@ void app_main(void) {
         // Always beep the speaker on real physical button presses (even in menu/auto)
         speaker_update(raw_buttons);
 
-        // Transmit at a steady 40 Hz (every 25ms)
+
+        //transmit every 25ms
         uint32_t now = pdTICKS_TO_MS(xTaskGetTickCount());
-        if (now - last_time >= 25) {
-            last_sent_packet = packet;
-            last_time = now;
-            
-            // Start the transmission time
+        if (now - last_tx_time >= 25) {
+            last_sent_packet=packet;
+            last_tx_time = now;
             metrics_record_espnow_tx_start();
             transmit_data(receiver_mac, &packet);
         }
-
-        // Print live IMU readings every 500ms
-        static uint32_t last_imu_print = 0;
-        if (now - last_imu_print >= 500) {
-            last_imu_print = now;
-            printf("[LIVE IMU] Tilt (Deadband) -> X: %6d  Y: %6d | Raw Accel -> [ax: %6d, ay: %6d, az: %6d]\r\n", 
-                   packet.accel_x, packet.accel_y, ax, ay, az);
-            fflush(stdout);
-        }
-        //check failsafe every iteration
+        
+        //failsafe check
         check_failsafe(&packet);
 
-        
-       
-        
         metrics_record_loop_end();
 
-        //freertos non blocking delay, puts this task to sleep for 10ms, 
-        //lets the cpu tackle other tasks 
-        vTaskDelay(pdMS_TO_TICKS(10));  
+        //preemptive determinisitc delay (every 10ms)
+        vTaskDelayUntil(&curr_time, xFreq);
+
     }
+}
+
+//low priority of 1 or 2
+static void console_task(void *pvParameters) {
+    while(1) {
+        UART_CONTROL_update();
+
+        //print the joystick debug readings
+        print_joystick_values();
+
+        //run at 10Hz so it doesn't waste CPU cycles
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+}
+
+
+
+void app_main(void) {
+    // 1. Peripherals, NVS, WiFi, LCD, UART & ESP-NOW initialization
+    init_esp_nvs();
+    init_wifi();
+    init_esp_now();
+    init_button_pin();
+    init_joystick();
+    init_speaker();
+    init_lcd_driver();
+    UART_CONTROL_init();
+    init_imu();
+    
+
+    printf("\r\n==========================================\r\n");
+    printf("   ESP32 TRANSMITTER READY               \r\n");
+    printf("   FreeRTOS Preemptive Tasks Running     \r\n");
+    printf("==========================================\r\n");
+
+    //we pin the tasks to specific cores
+    //contorl task on core0
+    xTaskCreatePinnedToCore(control_task, "control_task", 4096, NULL, 5, NULL, 0);
+
+    //console task core 0 as well.
+    xTaskCreatePinnedToCore(console_task, "console_task", 2048, NULL, 1, NULL, 0);
+    
+
 }
