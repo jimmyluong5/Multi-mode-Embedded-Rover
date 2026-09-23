@@ -114,7 +114,7 @@ def main():
                             imgsz=480,
                             tracker="botsort.yaml", #was bytetrack.yaml, now bot sort tracker.
                             verbose=False,
-                            classes=[67], 
+                            classes=[0], 
                             #used to be 
                             # classes = [0] for person, 
                             # changed [67] - phone, 

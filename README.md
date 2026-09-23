@@ -9,10 +9,9 @@ Rough Prototype of Line Following in mid-July
 
 
 
-An multi-mode rover built around the **STM32G431KB**, using an 8-channel reflectance sensor array for autonomous line following, LSM6DS3 IMU for tilt control UART for diagnostics and control, and ESP-NOW for wireless communication.
+A fully integrated autonomous mobile rover built around the **STM32G431KB** and a distributed network of **ESP32-S3** microcontrollers. The platform features closed-loop PID line following with an 8-channel reflectance array, real-time Time-of-Flight (VL53L1X) laser collision avoidance, 6-DoF IMU gesture tilt steering (LSM6DS3), a custom handheld wireless controller running preemptive dual-core FreeRTOS with a 3.2" LCD telemetry dashboard, and an autonomous computer vision "Follow-Me" tracking pipeline powered by Ultralytics YOLO (BoT-SORT) and OpenCV.
 
-
-The project began as a basic motor-control prototype and has gradually evolved into a full rover platform with autonomous navigation, sensor monitoring, multiple operating modes, and wireless control.
+Originally started as a motor-control prototype, the project has evolved into a complete, multi-mode autonomous robotic platform with distributed wireless control, sensor fusion, and real-time edge telemetry.
 <p align="center">
   <img src="https://github.com/user-attachments/assets/a8743f6e-6503-4095-bb05-f7fdd0e41f4b" width="24%" />
   <img src="https://github.com/user-attachments/assets/1136528b-bf2d-42e9-91b3-132347ca7aca" width="24%" />
@@ -723,50 +722,37 @@ typedef struct __attribute__((packed)) {
 * PuTTY
 * 8-bit command packet protocol
 
-## Roadmap & Next Steps
+## Development Milestones & Architecture Evolution
 
 ```text
-Current: Full Rover + UART Telemetry
-                ↓
-Phase 1: ESP32-to-STM32 Bridge & Wireless Joystick Control
-                ↓
-Phase 2: IMU Orientation & Heading Stabilization
-                ↓
-Phase 3: Time-of-Flight (ToF) Collision Detection & Auto-Braking
+[Phase 1: Bare-Metal Motor & PID Line Tracking] (Completed)
+                     ↓
+[Phase 2: ESP-NOW Wireless Bridge & Inter-MCU UART] (Completed)
+                     ↓
+[Phase 3: Handheld FreeRTOS Controller & 3.2" LCD Telemetry] (Completed)
+                     ↓
+[Phase 4: 6-DoF IMU Register-Level Gesture Tilt Steering] (Completed)
+                     ↓
+[Phase 5: Time-of-Flight Laser Obstacle Avoidance & AEB] (Completed)
+                     ↓
+[Phase 6: Edge AI Computer Vision & YOLO "Follow-Me" Tracking] (Completed)
 ```
-
-### Phase 1: ESP32-to-STM32 Bridge & Wireless Joystick Controller
-* **Inter-MCU Communication**: Bridge the receiver ESP32-S3 directly to the STM32G431KB via hardware UART, forwarding decoded wireless packets into real-time drive and mode commands.
-* **Analog Joystick Transmitter**: Upgrade the handheld controller with a 2-axis analog joystick to provide smooth, continuous proportional throttle and steering rather than discrete button presses.
-
-### Phase 2: IMU Integration & Dynamic Heading Stabilization
-* Integrate a 6-DOF / 9-DOF **Inertial Measurement Unit (IMU)** via I2C/SPI on the STM32.
-* Implement closed-loop attitude estimation and yaw-rate compensation to maintain straight-line tracking, prevent drift, and detect chassis tilt over uneven terrain.
-
-### Phase 3: Time-of-Flight (ToF) Collision Detection
-* Integrate forward-facing **Time-of-Flight (ToF) distance sensors** (e.g., VL53L0X / VL53L1X).
-* Implement real-time proximity sensing with dynamic speed reduction and autonomous emergency braking (AEB) to avoid obstacles during both manual and autonomous line-following modes.
 
 ## Current Status Summary
 
 > **Status: Project Complete (September 2026)** 🎉  
-> All primary design goals and subsystems—including distributed multi-MCU wireless networking, FreeRTOS preemptive multitasking, Time-of-Flight collision safety, and real-time computer vision "Follow-Me" tracking—have been fully implemented, validated, and integrated.
+> All primary engineering phases and hardware/software subsystems—spanning distributed multi-MCU wireless control, FreeRTOS preemptive multitasking, laser collision safety, and real-time computer vision tracking—have been fully developed, benchmarked, and completed.
 
-### Completed
-- [x] Bidirectional DC motor control with TB6612FNG & dual hardware PWM (TIM1_CH1 / TIM17_CH1)
-- [x] 8-Channel reflectance array acquisition via MCP3208 SPI ADC
-- [x] Autonomous line-following navigation with PID control
-- [x] 3D-printed chassis assembly and mechanical integration
-- [x] Servo-actuated steering & suspension control (45 deg - 135 deg limits)
-- [x] Multi-subsystem UART diagnostic & control dashboard
-- [x] Dual ESP32-S3 ESP-NOW wireless link with binary command packet protocol (40 Hz)
-- [x] Dedicated dual UART routing on STM32 (USART1 on PA9/PA10 for ESP32 receiver, LPUART1 on PA2/PA3 for PC PuTTY console)
-- [x] Handheld wireless controller with 3.2" 240x320 ILI9341 LCD, 2D joystick grid, and 4 diagnostic telemetry quadrants
-- [x] Real-time proportional manual joystick driving with differential throttle mixing
-- [x] 5-second inactivity fail-safe timeout watchdog with multi-tone audio alarm
-- [x] Closed-loop STM32 DWT performance metrics & link telemetry transmission over ESP-NOW back to handheld transmitter LCD (20 Hz)
-- [x] 6-DoF IMU gesture tilt control (LSM6DS3) with proportional throttle and Ackermann servo steering
-- [x] Real-time Time-of-Flight (VL53L1X) laser obstacle avoidance and emergency braking integrated into STM32 motor pipeline across Manual & IMU modes
-- [x] Preemptive FreeRTOS dual-core multitasking on ESP32-S3 transmitter (Core 0: 40 Hz RF transmission, Core 1: SPI LCD rendering)
-- [x] Autonomous "Follow-Me" target tracking vision pipeline using Ultralytics YOLO (BoT-SORT) and OpenCV over a 2 Mbaud camera stream with EMA filtering and Ackermann steering
+### Completed Subsystems & Features
+- [x] **Bidirectional Motor Drive**: Closed-loop TB6612FNG H-bridge control with dual hardware PWM (`TIM1_CH1` / `TIM17_CH1`)
+- [x] **Autonomous PID Line Following**: 8-channel reflectance array (QTRX-MD-08A) via 12-bit SPI ADC (MCP3208) with corner braking & lost-line trajectory recovery
+- [x] **Mechanical Integration**: Custom 3D-printed chassis with Ackermann servo steering (`TIM3_CH3`)
+- [x] **Distributed Multi-MCU Bridge**: 4-MCU system linking STM32 with 3 ESP32-S3 nodes via sub-2ms ESP-NOW wireless and 115.2k UART
+- [x] **Handheld Wireless Controller**: 3.2" 240x320 ILI9341 SPI TFT LCD, 2-axis analog joystick, 5-button debounced matrix, and piezoceramic speaker
+- [x] **FreeRTOS Dual-Core Multitasking**: Pinned 40 Hz time-critical RF control to Core 0, isolating SPI LCD rendering and DMA double-buffering on Core 1
+- [x] **Real-Time Telemetry Dashboard**: Live 4-quadrant GUI monitoring CPU load, ARM DWT cycle-accurate latency, EMA jitter, and packet drop rates
+- [x] **Safety Watchdog**: 5-second inactivity fail-safe with audible acoustic alarm and automatic motor cut-off
+- [x] **6-DoF IMU Gesture Control**: Register-level SPI driver for the ST LSM6DS3, translating wrist pitch and roll into proportional throttle and steering
+- [x] **Time-of-Flight Laser Safety**: VL53L1X laser ranger running at 30 Hz with automatic emergency braking (<400 mm) across Manual & IMU modes
+- [x] **Autonomous Computer Vision**: Real-time "Follow-Me" tracking using Ultralytics YOLO (BoT-SORT) and OpenCV over a 2 Mbaud camera stream with EMA smoothing
 
