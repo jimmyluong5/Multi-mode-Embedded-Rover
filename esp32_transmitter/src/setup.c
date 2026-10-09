@@ -52,12 +52,14 @@ static void OnDataRecv(const esp_now_recv_info_t *esp_now_info, const uint8_t *d
 
     ESP_LOGI(TAG, "Telemetery RX OK! CPU: %u%%, Latency: %.1fms, RSSI: %d dBm, Sensors: 0x%02X",
              robot_packet.cpuLoad, robot_packet.latencyMs, rssi, robot_packet.lineSensors);
-  } else {
+  } 
+  else {
     ESP_LOGW(TAG, "Telemetry size mismatch! Got %d bytes, expected %u bytes",
              data_len, (unsigned int)sizeof(robot_status_t));
   }
 }
 
+//useful for ESPnow
 void init_esp_nvs(void) {
   esp_err_t ret = nvs_flash_init();
   if (ret == ESP_ERR_NVS_NO_FREE_PAGES ||
