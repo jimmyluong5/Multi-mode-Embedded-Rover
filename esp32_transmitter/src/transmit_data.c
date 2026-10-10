@@ -23,7 +23,10 @@
 #define BTN_DOWN   (1 << 1) // GPIO 11: Down Arrow
 #define BTN_UP     (1 << 2) // GPIO 12: Up Arrow
 #define BTN_CENTER (1 << 3) // GPIO 13: Center / Confirm
-#define BTN_RIGHT  (1 << 4) // GPIO 14: Right Arrow
+#define BTN_RIGHT  (1 << 4) // GPIO 14: Right Arrow // 0001_0000
+
+// xxxx_xxxx
+// 7654 3210 
 
 extern bool failsafe_flag;
 extern uint32_t last_time_rx;
@@ -72,7 +75,7 @@ void process_arrow_keys(data_packet_t *packet) {
         return;
     }
 
-    uint8_t clicked_right = just_pressed & BTN_RIGHT;
+    uint8_t clicked_right = just_pressed & BTN_RIGHT; // 0000_1000
     uint8_t clicked_left = just_pressed & BTN_LEFT;
     uint8_t clicked_up = just_pressed & BTN_UP;
     uint8_t clicked_down = just_pressed & BTN_DOWN;
