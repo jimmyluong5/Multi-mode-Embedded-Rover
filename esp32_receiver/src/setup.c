@@ -46,11 +46,12 @@ static void OnDataRecv(const esp_now_recv_info_t *esp_now_info, const uint8_t *d
 void init_wifi(void) {
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_start());
-    ESP_ERROR_CHECK(esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE));
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT(); //cfg is the empty struct containing the wifi initialization parameters
+
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg)); //initialize the wifi using the parameters.
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA)); //set the wifi mode as station.
+    ESP_ERROR_CHECK(esp_wifi_start()); //start the wifi/powers on the physical wifi hardware on the esp32.
+    ESP_ERROR_CHECK(esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE)); //lock the wifi channel to channel 1
 }
 
 void init_esp_now(void) {
@@ -90,9 +91,11 @@ void init_uart(void) {
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
         .source_clk = UART_SCLK_DEFAULT
     };
+    //loaded the config settings into the registers of the esp32.
     ESP_ERROR_CHECK(uart_param_config(UART_NUM_1, &uart_config));
 
     // TX: GPIO 42 (Pin labeled "42") -> STM32 PA10 (RX / D0)
     // RX: GPIO 2  (Pin labeled "2")  <- STM32 PA9  (TX / D1)
+    //assigned the physical pins.
     ESP_ERROR_CHECK(uart_set_pin(UART_NUM_1, 42, 2, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 }
