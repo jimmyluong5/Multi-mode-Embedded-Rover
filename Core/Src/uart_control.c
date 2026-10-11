@@ -339,7 +339,7 @@ void UART_CONTROL_update(void) {
             throttle_ratio = -1.0f;
           }
 
-          //this is the gas padel, scales the speed percentage by the amount of tilt
+          //this is the gas pedal, scales the speed percentage by the amount of tilt
           int16_t motor_pwm = (int16_t)(throttle_ratio * (float)packet.speed * 10.0f);
           if (obstacle_flag == true && motor_pwm > 0)  {
             //set the motor_pwm to 0 then stop the motors
