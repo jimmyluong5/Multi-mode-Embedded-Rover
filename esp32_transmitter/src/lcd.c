@@ -446,6 +446,7 @@ static void display_pretty_colors(spi_device_handle_t spi) {
 
         for (int i = 0; i < 2; i++) {
             if (s_dma_lines[i] == NULL) { //checks if the buffer is empty before allocating.
+                //allocates 7.68kB for each frame buffer in memory. x
                 s_dma_lines[i] = spi_bus_dma_memory_alloc(LCD_HOST, X_MAX * PARALLEL_LINES * sizeof(uint16_t), mem_cap);
                 assert(s_dma_lines[i] != NULL);
             }
@@ -535,14 +536,19 @@ static void animation_task(void *pvParameters) {
 
 void init_lcd_driver(void) {
     esp_err_t ret;
+    //setting the SPI bus.
+    //populating the empty spi bus configuration struct
     spi_bus_config_t buscfg = {
         .miso_io_num = PIN_NUM_MISO,
         .mosi_io_num = PIN_NUM_MOSI,
         .sclk_io_num = PIN_NUM_CLK,
-        .quadwp_io_num = -1,
-        .quadhd_io_num = -1,
+        .quadwp_io_num = -1, //this is for quad spi
+        .quadhd_io_num = -1, //for quad spi, disable cuz the lcd, don't have the wires for it.
+        //this is the maximum number of bytes the DMA hardware can transfer at a time.
         .max_transfer_sz = PARALLEL_LINES * X_MAX * 2 + 8
     };
+
+    //setting up the device struct for the LCD
     spi_device_interface_config_t devcfg = {
 #ifdef CONFIG_LCD_OVERCLOCK
         .clock_speed_hz = 26 * 1000 * 1000,     //Clock out at 26 MHz

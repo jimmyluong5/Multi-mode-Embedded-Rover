@@ -166,6 +166,7 @@ void imu_process_tilt(int16_t raw_ax, int16_t raw_ay, int16_t *out_x, int16_t *o
     int16_t mapped_x = -raw_ax;
     int16_t mapped_y = -raw_ay;
 
+    //these are just equal to the raw values.
     s_latest_tilt_x = mapped_x;
     s_latest_tilt_y = mapped_y;
     
@@ -209,8 +210,18 @@ void imu_get_screen_coords(int *out_x, int *out_y) {
 }
 
 void imu_get_tilt_deg(int *pitch_deg, int *roll_deg) {
-    if (pitch_deg) *pitch_deg = ((int)s_latest_tilt_y * 90) / 8192;
-    if (roll_deg)  *roll_deg  = ((int)s_latest_tilt_x * 90) / 8192;
+    //this calculates the pitch and the roll using the small angle approximation.
+    //s_latest_tilt_y = raw_val_ay
+    if (pitch_deg) {
+        //in digital value between -90 to 90
+        *pitch_deg = ((int)s_latest_tilt_y * 90) / 8192;
+
+    }
+    //s_latest_tilt_x = raw_val_ax
+    if (roll_deg) {
+        *roll_deg  = ((int)s_latest_tilt_x * 90) / 8192;
+
+    }  
 }
 
 

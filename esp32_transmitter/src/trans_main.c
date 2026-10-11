@@ -199,7 +199,7 @@ static void control_task(void *pvParameters) {
 
 //low priority of 1 or 2
 static void console_task(void *pvParameters) {
-    while(1) {
+    while(1) { //or use for(;;)
         UART_CONTROL_update();
 
         //print the joystick debug readings
