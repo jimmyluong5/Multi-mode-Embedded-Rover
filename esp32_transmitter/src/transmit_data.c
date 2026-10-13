@@ -532,6 +532,7 @@ uint8_t update_mode(data_packet_t *packet) {
 
 //instead of sending just 8 bit data, it's gonna be an entire data packet.
 esp_err_t transmit_data(const uint8_t *receiver_mac, const data_packet_t *packet) {
+    //send the mac address of the receiver, the pointer to the data packet and the size of the data packet.
     esp_err_t result = esp_now_send(receiver_mac, (const uint8_t*) packet, sizeof(data_packet_t));
     return result;
 }
