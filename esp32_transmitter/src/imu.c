@@ -78,12 +78,13 @@ void imu_write_reg(uint8_t reg, uint8_t val) {
 
     //for write it would be 0111_1111
     //0 for write, 1 for read in the 7th bit., 7, 6, 5, 4, 3, 2, 1, 0
-
+    
+    //set up the spi transaction
     spi_transaction_t t = {
-        .length = 16, //2 bytes 
-        .tx_buffer = tx_data,
+        .length = 16, //2 bytes or 16 bits
+        .tx_buffer = tx_data, 
     };
-
+    //send the memory address of the transaction onto the spi bus.
     spi_device_polling_transmit(imu_spi, &t);
 }
 
